@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MapArt Archive</title>
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem('theme') ||
+        (matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+    } catch (e) {}
+  </script>
+  <link rel="icon" href="data/favicon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="#/"><img src="data/logo.png" alt=""><span class="name"></span></a>
+    <nav>
+      <a href="#/" data-r="home" data-i18n="nav.home"></a>
+      <a href="#/catalog" data-r="catalog" data-i18n="nav.catalog"></a>
+    </nav>
+    <div class="tools">
+      <label class="sw"><input type="checkbox" id="nsfw"><span>NSFW</span></label>
+      <details class="dd" id="lang">
+        <summary title="Language"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3 3.2 15 0 18M12 3c-3.2 3-3.2 15 0 18"/></svg></summary>
+        <div class="pop"></div>
+      </details>
+      <button id="theme" aria-label="Theme"></button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <footer>
+    <span>by _n0nam3_ &amp; TheFullZooMi</span>
+    <span class="links">
+      <a class="fbtn" href="https://discord.gg/7trar4QY5U" target="_blank" rel="noopener"
+         data-tip="MapArts of 2b2t.org.ru" aria-label="MapArts of 2b2t.org.ru">
+        <img class="pix" src="data/logo.png" alt="">
+      </a>
+      <a class="fbtn" href="https://discord.gg/k9brJtYdUM" target="_blank" rel="noopener"
+         data-tip="Архив 2.0│2b2t.org.ru" aria-label="Архив 2.0│2b2t.org.ru">
+        <img src="data/archive-logo.png" alt="">
+      </a>
+    </span>
+  </footer>
+
+  <div class="modal" id="gate">
+    <div class="box">
+      <h2 id="g-t"></h2>
+      <p id="g-x"></p>
+      <div class="acts">
+        <button class="btn" id="g-y"></button>
+        <button id="g-n"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="viewer" id="view"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
