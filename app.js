@@ -10,7 +10,7 @@ const LS = {
 
 // Folders and files.
 const IMG = 'data/arts/';
-const NOIMG = 'data/no-image.png';
+const NOIMG = 'data/assets/no-image.png';
 
 // Minimal monochrome icons for the theme button.
 const ICON = {
@@ -28,7 +28,9 @@ const S = {lang: 'ru', nsfw: false};
 let SEL = new Set();           // selected arts (ids)
 let selectMode = false;
 let onSel = null;              // set by the catalog, called when the selection changes
-let catHash = '#/catalog';     // last catalog address with filters (for Esc / back)
+let backHash = '#/catalog';     // page to return to from an art page (catalog keeps its filters)
+let curPage = '';               // page on the screen: home / catalog / art
+let savedScroll = null;         // {hash, y}: where the page we left for an art was scrolled
 
 // ---------- helpers ----------
 
@@ -187,18 +189,32 @@ function gate(k, yes, no, onYes, onNo) {
 
 // ---------- routing ----------
 
+// Art page: where it was opened from (home or catalog with its filters) and the scroll position there.
 function route() {
   const [p, q] = location.hash.slice(1).split('?');
   const path = (p || '/').split('/').filter(Boolean);
-  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (path[0] ? 'catalog' : 'home')));
+  const next = path[0] === 'catalog' ? 'catalog' : path[0] === 'art' ? 'art' : 'home';
+
+  if (next === 'art' && curPage !== 'art') savedScroll = {hash: backHash, y: scrollY};
+  if (next === 'home') backHash = '#/';
+
+  const inCatalog = next === 'catalog' || (next === 'art' && backHash.startsWith('#/catalog'));
+  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (inCatalog ? 'catalog' : 'home')));
   closeCards();
-  if (path[0] !== 'catalog') {
+  if (next !== 'catalog') {
     selectMode = false;
     onSel = null;
   }
-  if (path[0] === 'catalog') catalog(new URLSearchParams(q || ''));
-  else if (path[0] === 'art') artPage(decodeURIComponent(path[1] || ''));
+  if (next === 'catalog') catalog(new URLSearchParams(q || ''));
+  else if (next === 'art') artPage(decodeURIComponent(path[1] || ''));
   else home();
+
+  // a new page starts at the top; coming back from an art restores the old position
+  if (next !== curPage) {
+    const back = curPage === 'art' && savedScroll && savedScroll.hash === (location.hash || '#/');
+    scrollTo(0, back ? savedScroll.y : 0);
+  }
+  curPage = next;
 }
 
 // ---------- home ----------
@@ -241,7 +257,7 @@ function artPage(id) {
     return;
   }
   $('#app').innerHTML = `
-    <a class="mu" href="${esc(catHash)}">← ${t('nav.catalog')}</a>
+    <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/catalog') ? 'nav.catalog' : 'nav.home')}</a>
     <div class="art">
       <div class="shot">${img(a)}</div>
       <div>
@@ -383,7 +399,7 @@ function catalog(p) {
     w: rg('w', Number),
     h: rg('h', Number)
   };
-  catHash = location.hash;
+  backHash = location.hash;
   if (p.has('sel')) SEL = new Set((p.get('sel') || '').split('|').filter(Boolean));
   const same = k => F[k][0] === B[k][0] && F[k][1] === B[k][1];
 
@@ -465,7 +481,7 @@ function catalog(p) {
     });
     if (SEL.size) o.set('sel', [...SEL].join('|'));
     history.replaceState(null, '', '#/catalog' + (o.toString() ? '?' + o : ''));
-    catHash = location.hash;
+    backHash = location.hash;
   }
 
   function upd() {
@@ -561,8 +577,9 @@ document.addEventListener('click', e => {
 });
 
 addEventListener('scroll', closeCards, {passive: true});
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
 addEventListener('hashchange', route);
-// Esc: art page -> catalog, catalog -> home (the viewer, a dropdown or the 18+ window take Esc first)
+// Esc: art page -> the page it was opened from, catalog -> home (the viewer, a dropdown or the 18+ window take Esc first)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if ($('#view').classList.contains('on') || $('#gate').classList.contains('on')) return;
@@ -572,7 +589,7 @@ addEventListener('keydown', e => {
     return;
   }
   const page = (location.hash.slice(1).split('?')[0] || '/').split('/').filter(Boolean)[0];
-  if (page === 'art') location.hash = catHash;
+  if (page === 'art') location.hash = backHash;
   else if (page === 'catalog') location.hash = '#/';
 });
 addEventListener('resize', () => {
