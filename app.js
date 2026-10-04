@@ -585,10 +585,10 @@ addEventListener('resize', () => {
 (async () => {
   D = parseArts(await j('data/arts.json'));
 
-  // locales: locales/index.json lists the language codes
+  // locales: lang/index.json lists the language codes
   // (the file is rebuilt by .github/workflows/locales.yml when a locale is added)
-  const codes = await j('locales/index.json').catch(() => ['ru', 'en']);
-  const found = await Promise.all(codes.map(c => j(`locales/${c}.json`).then(d => [c, d]).catch(() => null)));
+  const codes = await j('lang/index.json').catch(() => ['ru', 'en']);
+  const found = await Promise.all(codes.map(c => j(`lang/${c}.json`).then(d => [c, d]).catch(() => null)));
   found.filter(Boolean).forEach(([c, d]) => { LOC[c] = d; });
   TF = LOC.en || {};
 
