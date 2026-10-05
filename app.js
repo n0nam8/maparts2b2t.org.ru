@@ -69,7 +69,9 @@ const monthParse = v => {                                                       
 const fd = s => (s.length === 7
   ? new Date(s + '-01').toLocaleDateString(S.lang, {month: '2-digit', year: 'numeric', timeZone: 'UTC'})
   : new Date(s).toLocaleDateString(S.lang, {timeZone: 'UTC'}));
-const qs = o => '#/catalog?' + new URLSearchParams(o);
+const enc = encodeURIComponent;
+// links to the catalog; the query is written by hand so that "~" and "," stay readable
+const qs = o => '#/catalog?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
 const sz = a => (hasSize(a) ? `${a.size[0]} × ${a.size[1]}` : t('na'));
 const szFull = a => (hasSize(a) ? `${sz(a)} (${P('maps', area(a))})` : t('na'));
 const perRow = () => (innerWidth <= 700 ? 2 : Math.max(1, Math.floor((($('#app').clientWidth - 32) + 16) / 196)));
@@ -400,7 +402,7 @@ function catalog(p) {
     h: rg('h', Number)
   };
   backHash = location.hash;
-  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split('|').filter(Boolean));
+  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split(/[~|]/).filter(Boolean));
   const same = k => F[k][0] === B[k][0] && F[k][1] === B[k][1];
 
   $('#app').innerHTML = `
@@ -472,15 +474,15 @@ function catalog(p) {
 
   // keep the filters and the selection in the address
   function syncUrl() {
-    const o = new URLSearchParams();
-    if (F.q) o.set('q', F.q);
-    if (F.s !== 'new') o.set('s', F.s);
-    if (F.tags.length) o.set('tag', F.tags);
+    const o = [];
+    if (F.q) o.push('q=' + enc(F.q));
+    if (F.s !== 'new') o.push('s=' + F.s);
+    if (F.tags.length) o.push('tag=' + F.tags.map(enc).join(','));
     [['d', monthIso], ['w', x => x], ['h', x => x]].forEach(([k, f]) => {
-      if (!same(k)) o.set(k, F[k].map(f).join('~'));
+      if (!same(k)) o.push(`${k}=${F[k].map(f).join('~')}`);
     });
-    if (SEL.size) o.set('sel', [...SEL].join('|'));
-    history.replaceState(null, '', '#/catalog' + (o.toString() ? '?' + o : ''));
+    if (SEL.size) o.push('sel=' + [...SEL].map(enc).join('~'));
+    history.replaceState(null, '', '#/catalog' + (o.length ? '?' + o.join('&') : ''));
     backHash = location.hash;
   }
 
@@ -516,8 +518,7 @@ function catalog(p) {
 
   // the link carries the selection and opens it as "selected only"
   $('#copy').onclick = () => {
-    const url = location.origin + location.pathname + '#/catalog?' +
-      new URLSearchParams({sel: [...SEL].join('|'), s: 'sel'});
+    const url = location.origin + location.pathname + '#/catalog?sel=' + [...SEL].map(enc).join('~') + '&s=sel';
     const btn = $('#copy');
     const done = () => {
       btn.textContent = t('sel.copied');
@@ -602,8 +603,7 @@ addEventListener('resize', () => {
 (async () => {
   D = parseArts(await j('data/arts.json'));
 
-  // locales: lang/index.json lists the language codes
-  // (the file is rebuilt by .github/workflows/locales.yml when a locale is added)
+  // languages: lang/index.json lists the codes (add a language: put lang/xx.json and write xx in index.json)
   const codes = await j('lang/index.json').catch(() => ['ru', 'en']);
   const found = await Promise.all(codes.map(c => j(`lang/${c}.json`).then(d => [c, d]).catch(() => null)));
   found.filter(Boolean).forEach(([c, d]) => { LOC[c] = d; });
