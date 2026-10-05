@@ -12,7 +12,7 @@
       "name": "",
       "authors": [],
       "date": "",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "3.png",
@@ -439,7 +439,7 @@
       "name": "",
       "authors": ["ItzMinerr"],
       "date": "02.26",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "65.png",
@@ -467,21 +467,21 @@
       "name": "",
       "authors": ["anus_fermera37"],
       "date": "05.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "69.png",
       "name": "",
       "authors": [],
       "date": "01.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "70.png",
       "name": "",
       "authors": [],
       "date": "02.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "71.png",
@@ -509,7 +509,7 @@
       "name": "RIP Oliver Tree",
       "authors": ["TheFullZooMi"],
       "date": "07.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "75.png",
@@ -530,7 +530,7 @@
       "name": "",
       "authors": ["Vlad_Roslyakov"],
       "date": "03.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "78.png",
@@ -593,7 +593,7 @@
       "name": "",
       "authors": [],
       "date": "03.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "87.png",
@@ -628,21 +628,21 @@
       "name": "BRB",
       "authors": ["igoshka"],
       "date": "03.24",
-      "tags": ["memes"]
+      "tags": ["memes", "people"]
     },
     {
       "image": "92.png",
       "name": "",
       "authors": ["0_pohval"],
       "date": "05.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "93.png",
       "name": "с др gromo",
       "authors": ["gazon"],
       "date": "26.09.26",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "94.png",
@@ -670,7 +670,7 @@
       "name": "",
       "authors": [],
       "date": "",
-      "tags": []
+      "tags": ["flags"]
     },
     {
       "image": "98.png",
@@ -698,7 +698,7 @@
       "name": "",
       "authors": ["BZefiro4ekB", "dev0xz02"],
       "date": "03.26",
-      "tags": []
+      "tags": ["flags"]
     },
     {
       "image": "102.png",
@@ -971,7 +971,7 @@
       "name": "",
       "authors": ["Twedis"],
       "date": "04.22",
-      "tags": []
+      "tags": ["pony"]
     }
   ],
 
@@ -1014,7 +1014,7 @@
       "authors": ["Twedis", "ashvira"],
       "size": [1, 2],
       "date": "04.22",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "ma-000006.png",
@@ -1046,7 +1046,7 @@
       "authors": ["Drk", "Twedis"],
       "size": [2, 2],
       "date": "09.23",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "ma-000010.png",
@@ -1114,7 +1114,7 @@
     },
     {
       "image": "ma-000018.png",
-      "name": "",
+      "name": "kiss",
       "authors": ["gR0m0vEpgh3c", "CosmoRBN"],
       "size": [3, 4],
       "date": "11.25",
@@ -1230,11 +1230,11 @@
       "authors": ["Twedis", "MoonWhisper"],
       "size": [2, 2],
       "date": "04.22",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "ma-000033.png",
-      "name": "",
+      "name": "bad apple",
       "authors": ["GoryGoraPlay_"],
       "size": [4, 3],
       "date": "03.26",
@@ -1266,7 +1266,7 @@
     },
     {
       "image": "ma-000037.png",
-      "name": "",
+      "name": "kramskoy",
       "authors": ["gazon"],
       "size": [3, 3],
       "date": "08.26",
@@ -1286,7 +1286,7 @@
       "authors": ["Twedis", "MoonWhisper", "ashvira", "vanyapro228"],
       "size": [1, 2],
       "date": "05.23",
-      "tags": ["nsfw"]
+      "tags": ["nsfw", "pony"]
     },
     {
       "image": "ma-000040.png",
@@ -1294,7 +1294,7 @@
       "authors": ["228VITAL1K228"],
       "size": [2, 1],
       "date": "07.26",
-      "tags": []
+      "tags": ["flags"]
     },
     {
       "image": "ma-000041.png",
@@ -1302,7 +1302,7 @@
       "authors": ["Twedis", "RockeZZgorns"],
       "size": [1, 2],
       "date": "05.22",
-      "tags": []
+      "tags": ["pony"]
     },
     {
       "image": "ma-000042.png",
@@ -1322,7 +1322,7 @@
     },
     {
       "image": "ma-000044.png",
-      "name": "",
+      "name": "Unikitty",
       "authors": ["PrincessUnikitty", "Twedis"],
       "size": [1, 2],
       "date": "04.22",
@@ -1330,11 +1330,11 @@
     },
     {
       "image": "ma-000045.png",
-      "name": "",
+      "name": "kazakstan flag",
       "authors": ["Twedis"],
       "size": [4, 2],
       "date": "04.22",
-      "tags": []
+      "tags": ["flags"]
     }
   ]
 }
