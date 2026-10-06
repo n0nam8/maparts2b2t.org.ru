@@ -7,7 +7,7 @@
   --mu: #9aa2b2;
   --ac: #85a63e;
   --on: #14180a;
-  --red: #900;
+  --red: #c00;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -20,7 +20,7 @@
   --mu: #6a6c58;
   --ac: #6b8a2a;
   --on: #ffffff;
-  --red: #900;
+  --red: #c00;
 }
 
 * {
@@ -123,7 +123,8 @@ nav a:hover {
 }
 
 #lang summary,
-#theme {
+#theme,
+#burger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,11 +133,15 @@ nav a:hover {
   padding: 0;
 }
 
+#burger {
+  display: none;
+}
+
 footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
   padding: 16px max(16px, calc((100% - 1248px) / 2));
   color: var(--mu);
@@ -144,8 +149,16 @@ footer {
   border-top: 1px solid var(--bd);
 }
 
+/* the text takes the free space, so the buttons stay on the right;
+   if they do not fit, they move to their own line and are centered */
+footer > :first-child {
+  flex: 1 1 auto;
+}
+
 .links {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -156,6 +169,7 @@ footer {
   justify-content: center;
   width: 40px;
   height: 40px;
+  color: var(--tx);
   background: var(--btn);
   border: 1px solid var(--bd);
 }
@@ -163,6 +177,12 @@ footer {
 .fbtn:hover,
 .fbtn:focus-visible {
   border-color: var(--ac);
+}
+
+.fbtn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
 }
 
 .fbtn img {
@@ -566,6 +586,8 @@ button:hover,
   color: var(--on);
 }
 
+/* selection mode */
+
 .selbar {
   display: flex;
   flex-wrap: wrap;
@@ -614,19 +636,23 @@ button:disabled {
 /* ---------- home ---------- */
 
 .top {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* equal cells that stretch over the whole row; a cell is never narrower than its text */
 .top li {
+  flex: 1 1 0;
+  min-width: max-content;
   display: flex;
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
+  white-space: nowrap;
   background: var(--sf);
   border: 1px solid var(--bd);
 }
@@ -735,11 +761,45 @@ dd > a:not(.chip) {
 @media (max-width: 700px) {
   header {
     grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo logo"
+      "nav burger";
+    row-gap: 8px;
+  }
+
+  header.open {
+    grid-template-areas:
+      "logo logo"
+      "nav burger"
+      "tools tools";
+  }
+
+  .logo {
+    grid-area: logo;
   }
 
   nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    grid-area: nav;
+    justify-self: start;
+  }
+
+  #burger {
+    grid-area: burger;
+    display: flex;
+  }
+
+  .tools {
+    display: none;
+    grid-area: tools;
+    justify-self: stretch;
+  }
+
+  .tools #lang {
+    margin-left: auto;
+  }
+
+  header.open .tools {
+    display: flex;
   }
 
   .art {
@@ -760,12 +820,6 @@ dd > a:not(.chip) {
     right: auto;
     width: max-content;
     max-width: 100%;
-  }
-}
-
-@media (max-width: 560px) {
-  .name {
-    display: none;
   }
 }
 

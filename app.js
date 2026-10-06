@@ -56,7 +56,7 @@ const normDate = v => {
   return `${y}-${pad(mo)}` + (d ? `-${pad(d)}` : '');
 };
 
-// The date filter works with months: a month is the number  year * 12 + month - 1.
+// The date filter works with months: a month is the number year * 12 + month - 1.
 const monthOf = s => +s.slice(0, 4) * 12 + +s.slice(5, 7) - 1;                 // from "YYYY-MM[-DD]"
 const monthIso = n => `${Math.floor(n / 12)}-${pad(n % 12 + 1)}`;               // "2026-05" (address bar)
 const monthStr = n => `${pad(n % 12 + 1)}.${pad(Math.floor(n / 12) % 100)}`;    // "05.26" (shown to the user)
@@ -66,9 +66,10 @@ const monthParse = v => {                                                       
   return (m[2].length === 2 ? 2000 + +m[2] : +m[2]) * 12 + +m[1] - 1;
 };
 
+// A date is shown as "dd.mm.yy" or "mm.yy" in every language.
 const fd = s => (s.length === 7
-  ? new Date(s + '-01').toLocaleDateString(S.lang, {month: '2-digit', year: 'numeric', timeZone: 'UTC'})
-  : new Date(s).toLocaleDateString(S.lang, {timeZone: 'UTC'}));
+  ? `${s.slice(5, 7)}.${s.slice(2, 4)}`
+  : `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(2, 4)}`);
 const enc = encodeURIComponent;
 // links to the catalog; the query is written by hand so that "~" and "," stay readable
 const qs = o => '#/catalog?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
@@ -93,7 +94,11 @@ const byDate = d => (a, b) => {
   if (a.date.length !== b.date.length) return b.date.length - a.date.length;
   return d * a.date.localeCompare(b.date);
 };
-const bySize = d => (a, b) => (!hasSize(a) || !hasSize(b) ? !hasSize(a) - !hasSize(b) : d * (area(a) - area(b)));
+// Size: by area, then by width; arts of exactly the same size go by date (newest first).
+const bySize = d => (a, b) => {
+  if (!hasSize(a) || !hasSize(b)) return !hasSize(a) - !hasSize(b);
+  return d * (area(a) - area(b)) || d * (a.size[0] - b.size[0]) || byDate(-1)(a, b);
+};
 const SORTS = {new: byDate(-1), old: byDate(1), big: bySize(-1), small: bySize(1), sel: byDate(-1)};
 
 const img = a => `<img loading="lazy" src="${IMG}${encodeURIComponent(a.image)}" alt="${ti(a)}"
@@ -227,7 +232,7 @@ function home() {
 
   const authors = {};
   A.forEach(a => a.authors.forEach(n => { authors[n] = (authors[n] || 0) + 1; }));
-  const top = Object.entries(authors).sort((x, y) => y[1] - x[1]).slice(0, 10);
+  const top = Object.entries(authors).sort((x, y) => y[1] - x[1]).slice(0, 3);
 
   const block = (title, list, more) => `
     <section>
@@ -250,7 +255,7 @@ function home() {
     </section>`;
 }
 
-// ---------- art page + fullscreen viewer with a magnifier ----------
+// ---------- art page + fullscreen viewer (click to zoom) ----------
 
 function artPage(id) {
   const a = D.find(x => x.id === id);
@@ -384,9 +389,11 @@ function catalog(p) {
     w: [1, Math.max(1, ...sized.map(a => a.size[0]))],
     h: [1, Math.max(1, ...sized.map(a => a.size[1]))]
   };
-  const tags = [...new Set(A.flatMap(a => a.tags))].sort();
   const cnt = {};
   A.forEach(a => a.tags.forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
+  // the most used tags first, "nsfw" always at the bottom
+  const tags = Object.keys(cnt).sort((x, y) =>
+    (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
   // filters come from the address, so links like #/catalog?q=Steve work
   const rg = (k, f) => {
@@ -545,9 +552,7 @@ function catalog(p) {
 
 // ---------- events ----------
 
-// Touch screens: 1st tap = short info, 2nd tap = open the art.
-// Scrolling or tapping elsewhere closes the info.
-const touch = matchMedia('(hover:none)');
+// In the selection mode a click on a card selects / unselects it instead of opening it.
 function toggleSel(c) {
   const id = c.dataset.id;
   if (SEL.has(id)) SEL.delete(id);
@@ -556,6 +561,9 @@ function toggleSel(c) {
   if (onSel) onSel();
 }
 
+// Touch screens: 1st tap = short info, 2nd tap = open the art.
+// Scrolling or tapping elsewhere closes the info.
+const touch = matchMedia('(hover:none)');
 const closeCards = () => $$('.card.open').forEach(c => c.classList.remove('open'));
 
 $('#app').addEventListener('click', e => {
@@ -619,6 +627,12 @@ addEventListener('resize', () => {
       setLang(b.dataset.l);
     };
   });
+
+  // phones: the burger button shows / hides the tools (NSFW, language, theme)
+  $('#burger').onclick = () => {
+    const open = $('header').classList.toggle('open');
+    $('#burger').setAttribute('aria-expanded', open);
+  };
 
   // language: the saved choice, otherwise the browser's preferred languages, otherwise English
   const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])
