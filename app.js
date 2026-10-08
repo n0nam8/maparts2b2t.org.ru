@@ -12,8 +12,10 @@ const LS = {
 const IMG = 'data/arts/';
 const NOIMG = 'data/assets/no-image.png';
 
-// Minimal monochrome icons for the theme button.
+// Minimal monochrome icons: the theme button and the sort arrows.
 const ICON = {
+  down: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  up: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
   moon: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
   sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
 };
@@ -22,14 +24,15 @@ let D = [];            // arts
 let LOC = {};          // loaded locales
 let T = {};            // current locale
 let TF = {};           // fallback locale (en)
-let F;                 // catalog filters
+let F;                 // gallery filters
 let cols = 0;          // cards per row on the home page
+let acols = 0;         // columns of the top authors on the home page
 const S = {lang: 'ru', nsfw: false};
 let SEL = new Set();           // selected arts (ids)
 let selectMode = false;
-let onSel = null;              // set by the catalog, called when the selection changes
-let backHash = '#/catalog';     // page to return to from an art page (catalog keeps its filters)
-let curPage = '';               // page on the screen: home / catalog / art
+let onSel = null;              // set by the gallery, called when the selection changes
+let backHash = '#/gallery';     // page to return to from an art page (the gallery keeps its filters)
+let curPage = '';               // page on the screen: home / gallery / authors / art
 let savedScroll = null;         // {hash, y}: where the page we left for an art was scrolled
 
 // ---------- helpers ----------
@@ -71,8 +74,8 @@ const fd = s => (s.length === 7
   ? `${s.slice(5, 7)}.${s.slice(2, 4)}`
   : `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(2, 4)}`);
 const enc = encodeURIComponent;
-// links to the catalog; the query is written by hand so that "~" and "," stay readable
-const qs = o => '#/catalog?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
+// links to the gallery; the query is written by hand so that "~" and "," stay readable
+const qs = o => '#/gallery?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
 const sz = a => (hasSize(a) ? `${a.size[0]} × ${a.size[1]}` : t('na'));
 const szFull = a => (hasSize(a) ? `${sz(a)} (${P('maps', area(a))})` : t('na'));
 const perRow = () => (innerWidth <= 700 ? 2 : Math.max(1, Math.floor((($('#app').clientWidth - 32) + 16) / 196)));
@@ -150,6 +153,16 @@ function parseArts(raw) {
   return out;
 }
 
+// Copies a link; the button says "copied" for a moment.
+function copyLink(btn, url, label, done) {
+  const ok = () => {
+    btn.textContent = t(done);
+    setTimeout(() => { btn.textContent = t(label); }, 1500);
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, () => prompt('', url));
+  else prompt('', url);
+}
+
 async function j(u) {
   const r = await fetch(u);
   if (!r.ok) throw 0;
@@ -196,24 +209,25 @@ function gate(k, yes, no, onYes, onNo) {
 
 // ---------- routing ----------
 
-// Art page: where it was opened from (home or catalog with its filters) and the scroll position there.
+// Art page: where it was opened from (home or gallery with its filters) and the scroll position there.
 function route() {
   const [p, q] = location.hash.slice(1).split('?');
   const path = (p || '/').split('/').filter(Boolean);
-  const next = path[0] === 'catalog' ? 'catalog' : path[0] === 'art' ? 'art' : 'home';
+  const next = ['gallery', 'art', 'authors'].includes(path[0]) ? path[0] : 'home';
 
   if (next === 'art' && curPage !== 'art') savedScroll = {hash: backHash, y: scrollY};
   if (next === 'home') backHash = '#/';
 
-  const inCatalog = next === 'catalog' || (next === 'art' && backHash.startsWith('#/catalog'));
-  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (inCatalog ? 'catalog' : 'home')));
+  const tab = next === 'art' ? (backHash.startsWith('#/gallery') ? 'gallery' : 'home') : next;
+  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.r === tab));
   closeCards();
-  if (next !== 'catalog') {
+  if (next !== 'gallery') {
     selectMode = false;
     onSel = null;
   }
-  if (next === 'catalog') catalog(new URLSearchParams(q || ''));
+  if (next === 'gallery') galleryPage(new URLSearchParams(q || ''));
   else if (next === 'art') artPage(decodeURIComponent(path[1] || ''));
+  else if (next === 'authors') authorsPage();
   else home();
 
   // a new page starts at the top; coming back from an art restores the old position
@@ -230,9 +244,8 @@ function home() {
   const A = D.filter(vis);
   cols = perRow();
 
-  const authors = {};
-  A.forEach(a => a.authors.forEach(n => { authors[n] = (authors[n] || 0) + 1; }));
-  const top = Object.entries(authors).sort((x, y) => y[1] - x[1]).slice(0, 3);
+  acols = authCols();
+  const top = authorRows(A).sort(authorOrder('arts')).slice(0, AUTHORS_SHOWN[acols]);
 
   const block = (title, list, more) => `
     <section>
@@ -244,15 +257,100 @@ function home() {
     </section>`;
 
   $('#app').innerHTML = `
-    ${block('home.new', [...A].sort(SORTS.new), '#/catalog')}
-    ${block('home.big', [...A].sort(SORTS.big), '#/catalog?s=big')}
+    ${block('home.new', [...A].sort(SORTS.new), '#/gallery')}
+    ${block('home.big', [...A].sort(SORTS.big), '#/gallery?s=big')}
     <section>
-      <h2>${t('home.authors')}</h2>
-      <ol class="top">
-        ${top.map(([n, c]) => `
-          <li><a href="${qs({q: n})}">${esc(n)}</a><span class="mu">${P('arts', c)}</span></li>`).join('')}
+      <div class="sh">
+        <h2>${t('home.authors')}</h2>
+        <a class="btn" href="#/authors">${t('home.more')} →</a>
+      </div>
+      <ol class="top" style="--cols:${acols}">
+        ${top.map(r => `
+          <li><a href="${qs({q: r.name})}">${esc(r.name)}</a><span class="mu">${P('arts', r.arts)}</span></li>`).join('')}
       </ol>
     </section>`;
+}
+
+// ---------- authors ----------
+
+// An author: how many arts he is credited in and how many separate maps (width x height) those arts have.
+const authorRows = A => {
+  const m = {};
+  A.forEach(a => a.authors.forEach(n => {
+    const r = m[n] || (m[n] = {name: n, arts: 0, maps: 0});
+    r.arts++;
+    r.maps += area(a);
+  }));
+  return Object.values(m);
+};
+
+// Order by one number, the biggest first; on a tie the other number decides (again the biggest first).
+const authorOrder = k => {
+  const o = k === 'arts' ? 'maps' : 'arts';
+  return (x, y) => y[k] - x[k] || y[o] - x[o] || x.name.localeCompare(y.name);
+};
+
+// Top authors on the home page: tiles are at least 260px wide, 3 columns at most.
+// 3 columns = 9 tiles, 2 columns = 8 tiles, 1 column = 9 tiles.
+const AUTHORS_SHOWN = {1: 9, 2: 8, 3: 9};
+const authCols = () => Math.max(1, Math.min(3, Math.floor((($('#app').clientWidth - 32) + 8) / 268)));
+
+const AS = {key: 'arts', dir: 'desc'};   // sorting of the authors table
+
+function authorsPage() {
+  const rows = authorRows(D.filter(vis));
+  const k = AS.key;
+  const o = k === 'arts' ? 'maps' : 'arts';
+
+  // the place is always counted from the biggest number; equal numbers share a place
+  const best = [...rows].sort(authorOrder(k));
+  const place = new Map();
+  best.forEach((r, i) => {
+    const prev = best[i - 1];
+    place.set(r, prev && prev.arts === r.arts && prev.maps === r.maps ? place.get(prev) : i + 1);
+  });
+  const list = AS.dir === 'desc'
+    ? best
+    : [...rows].sort((x, y) => x[k] - y[k] || y[o] - x[o] || x.name.localeCompare(y.name));
+
+  // a sortable column title; the arrow shows up only on the column that is sorted now
+  const th = (key, label) => {
+    const on = AS.key === key;
+    return `
+      <th class="num" aria-sort="${on ? (AS.dir === 'desc' ? 'descending' : 'ascending') : 'none'}">
+        <button class="${on ? 'active' : ''}" data-k="${key}">${label}${on ? ICON[AS.dir === 'desc' ? 'down' : 'up'] : ''}</button>
+      </th>`;
+  };
+
+  $('#app').innerHTML = `
+    <h1>${t('nav.authors')}</h1>
+    <table class="atable">
+      <thead>
+        <tr><th>${t('au.place')}</th><th>${t('au.name')}</th>${th('arts', t('au.arts'))}${th('maps', t('au.maps'))}</tr>
+      </thead>
+      <tbody>
+        ${list.map(r => `
+          <tr>
+            <td class="mu">${place.get(r)}</td>
+            <td class="nick"><a href="${qs({q: r.name})}">${esc(r.name)}</a></td>
+            <td class="num">${r.arts}</td>
+            <td class="num">${r.maps}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  // a click on a title: the same column flips the direction, another column starts from the biggest
+  $$('.atable th button').forEach(b => {
+    b.onclick = () => {
+      if (AS.key === b.dataset.k) {
+        AS.dir = AS.dir === 'desc' ? 'asc' : 'desc';
+      } else {
+        AS.key = b.dataset.k;
+        AS.dir = 'desc';
+      }
+      authorsPage();
+    };
+  });
 }
 
 // ---------- art page + fullscreen viewer (click to zoom) ----------
@@ -260,11 +358,11 @@ function home() {
 function artPage(id) {
   const a = D.find(x => x.id === id);
   if (!a || !vis(a)) {
-    $('#app').innerHTML = `<p>${t('art.nf')}</p><a class="btn" href="#/catalog">${t('nav.catalog')}</a>`;
+    $('#app').innerHTML = `<p>${t('art.nf')}</p><a class="btn" href="#/gallery">${t('nav.gallery')}</a>`;
     return;
   }
   $('#app').innerHTML = `
-    <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/catalog') ? 'nav.catalog' : 'nav.home')}</a>
+    <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/gallery') ? 'nav.gallery' : 'nav.home')}</a>
     <div class="art">
       <div class="shot">${img(a)}</div>
       <div>
@@ -279,9 +377,17 @@ function artPage(id) {
           <dt>${t('art.tags')}</dt>
           <dd>${a.tags.map(g => `<a class="chip" href="${qs({tag: g})}">${esc(tg(g))}</a>`).join(' ') || t('na')}</dd>
         </dl>
+        <div class="acts">
+          <button id="copy-art">${t('art.copy')}</button>
+          <a class="btn" id="dl" href="${IMG}${enc(a.image)}" download="${esc(a.image)}">${t('art.dl')}</a>
+        </div>
       </div>
     </div>`;
   $('.shot img').onclick = e => viewer(e.target.src);
+  $('#copy-art').onclick = () => copyLink(
+    $('#copy-art'), location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
+  // there is no file to download while the "no image" picture is shown
+  $('#dl').onclick = e => { if ($('.shot img').src.endsWith(NOIMG)) e.preventDefault(); };
 }
 
 function viewer(src) {
@@ -327,7 +433,7 @@ function viewer(src) {
   v.classList.add('on');
 }
 
-// ---------- catalog ----------
+// ---------- gallery ----------
 
 // A slider with two thumbs + two manual inputs.
 function range(label, [min, max], [lo, hi], cb, isMonth) {
@@ -380,7 +486,7 @@ function dropdown(label, rows, text) {
   return {el, refresh};
 }
 
-function catalog(p) {
+function galleryPage(p) {
   const A = D.filter(vis);
   const months = A.filter(a => a.date).map(a => monthOf(a.date));
   const sized = A.filter(hasSize);
@@ -395,7 +501,7 @@ function catalog(p) {
   const tags = Object.keys(cnt).sort((x, y) =>
     (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
-  // filters come from the address, so links like #/catalog?q=Steve work
+  // filters come from the address, so links like #/gallery?q=Steve work
   const rg = (k, f) => {
     const v = (p.get(k) || '').split('~');
     return v.length === 2 ? v.map((x, i) => { x = f(x); return isNaN(x) ? B[k][i] : x; }) : [...B[k]];
@@ -409,13 +515,13 @@ function catalog(p) {
     h: rg('h', Number)
   };
   backHash = location.hash;
-  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split(/[~|]/).filter(Boolean));
+  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split('~').filter(Boolean));
   const same = k => F[k][0] === B[k][0] && F[k][1] === B[k][1];
 
   $('#app').innerHTML = `
-    <h1>${t('nav.catalog')}</h1>
+    <h1>${t('nav.gallery')}</h1>
     <div class="bar">
-      <input id="q" type="search" placeholder="${esc(t('cat.search'))}" value="${esc(F.q)}">
+      <input id="q" type="search" placeholder="${esc(t('gal.search'))}" value="${esc(F.q)}">
     </div>
     <div class="frow" id="fr"></div>
     <div class="selbar" id="selbar" hidden>
@@ -466,8 +572,8 @@ function catalog(p) {
   });
 
   const reset = document.createElement('button');
-  reset.textContent = t('cat.reset');
-  reset.onclick = () => { location.hash = '#/catalog'; };
+  reset.textContent = t('gal.reset');
+  reset.onclick = () => { location.hash = '#/gallery'; };
   const mode = document.createElement('button');
   mode.textContent = t('sel.mode');
   mode.classList.toggle('on', selectMode);
@@ -489,7 +595,7 @@ function catalog(p) {
       if (!same(k)) o.push(`${k}=${F[k].map(f).join('~')}`);
     });
     if (SEL.size) o.push('sel=' + [...SEL].map(enc).join('~'));
-    history.replaceState(null, '', '#/catalog' + (o.length ? '?' + o.join('&') : ''));
+    history.replaceState(null, '', '#/gallery' + (o.length ? '?' + o.join('&') : ''));
     backHash = location.hash;
   }
 
@@ -511,7 +617,7 @@ function catalog(p) {
     $('#cnt').textContent = t('found')
       .replace('{arts}', P('arts', r.length))
       .replace('{authors}', P('authors', new Set(r.flatMap(a => a.authors)).size));
-    $('#gr').innerHTML = r.length ? grid(r) : `<p class="mu">${t('cat.none')}</p>`;
+    $('#gr').innerHTML = r.length ? grid(r) : `<p class="mu">${t('gal.none')}</p>`;
     $$('.chip[data-g]').forEach(c => c.classList.toggle('on', F.tags.includes(c.dataset.g)));
     $$('.chip[data-s]').forEach(c => c.classList.toggle('on', F.s === c.dataset.s));
   }
@@ -524,16 +630,10 @@ function catalog(p) {
   }
 
   // the link carries the selection and opens it as "selected only"
-  $('#copy').onclick = () => {
-    const url = location.origin + location.pathname + '#/catalog?sel=' + [...SEL].map(enc).join('~') + '&s=sel';
-    const btn = $('#copy');
-    const done = () => {
-      btn.textContent = t('sel.copied');
-      setTimeout(() => { btn.textContent = t('sel.copy'); }, 1500);
-    };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('', url));
-    else prompt('', url);
-  };
+  $('#copy').onclick = () => copyLink(
+    $('#copy'),
+    location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join('~') + '&s=sel',
+    'sel.copy', 'sel.copied');
   $('#clr').onclick = () => {
     SEL.clear();
     updSel();
@@ -588,7 +688,7 @@ document.addEventListener('click', e => {
 addEventListener('scroll', closeCards, {passive: true});
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
 addEventListener('hashchange', route);
-// Esc: art page -> the page it was opened from, catalog -> home (the viewer, a dropdown or the 18+ window take Esc first)
+// Esc: art page -> the page it was opened from, gallery / authors -> home (the viewer, a dropdown or the 18+ window take Esc first)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if ($('#view').classList.contains('on') || $('#gate').classList.contains('on')) return;
@@ -599,11 +699,11 @@ addEventListener('keydown', e => {
   }
   const page = (location.hash.slice(1).split('?')[0] || '/').split('/').filter(Boolean)[0];
   if (page === 'art') location.hash = backHash;
-  else if (page === 'catalog') location.hash = '#/';
+  else if (page === 'gallery' || page === 'authors') location.hash = '#/';
 });
 addEventListener('resize', () => {
   const p = location.hash.slice(1).split('?')[0];
-  if ((p === '' || p === '/') && perRow() !== cols) route();
+  if ((p === '' || p === '/') && (perRow() !== cols || authCols() !== acols)) route();
 });
 
 // ---------- start ----------

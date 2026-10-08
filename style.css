@@ -122,6 +122,11 @@ nav a:hover {
   stroke-linejoin: round;
 }
 
+.ico.sm {
+  width: 16px;
+  height: 16px;
+}
+
 #lang summary,
 #theme,
 #burger {
@@ -635,26 +640,96 @@ button:disabled {
 
 /* ---------- home ---------- */
 
+/* the number of columns (--cols) is set by the script: a tile is never narrower than about 260px */
 .top {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* equal cells that stretch over the whole row; a cell is never narrower than its text */
 .top li {
-  flex: 1 1 0;
-  min-width: max-content;
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
   padding: 8px 12px;
   white-space: nowrap;
   background: var(--sf);
   border: 1px solid var(--bd);
+}
+
+.top a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top span {
+  flex: none;
+}
+
+/* ---------- authors ---------- */
+
+.atable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+}
+
+.atable th,
+.atable td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--bd);
+}
+
+.atable th {
+  color: var(--mu);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.atable tbody tr:hover {
+  background: var(--bg);
+}
+
+.atable th:first-child,
+.atable td:first-child,
+.atable .num {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.atable .num {
+  text-align: right;
+}
+
+/* long nicknames are cut with "..." instead of widening the table */
+.atable .nick {
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atable th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+}
+
+.atable th button:hover,
+.atable th button.active {
+  color: var(--ac);
 }
 
 /* ---------- art page ---------- */
@@ -673,6 +748,10 @@ button:disabled {
   border: 1px solid var(--bd);
   image-rendering: pixelated;
   cursor: zoom-in;
+}
+
+.shot .acts {
+  margin-top: 10px;
 }
 
 dl {
@@ -781,6 +860,10 @@ dd > a:not(.chip) {
   nav {
     grid-area: nav;
     justify-self: start;
+  }
+
+  nav a {
+    padding: 6px 10px;
   }
 
   #burger {
