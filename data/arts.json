@@ -227,15 +227,15 @@
     {
       "image": "0033.png",
       "name": "blue square",
-      "authors": [],
-      "date": "",
+      "authors": ["ToadKing", "Twedis"],
+      "date": "04.22",
       "tags": []
     },
     {
       "image": "0034.png",
       "name": "yellow square",
-      "authors": [],
-      "date": "",
+      "authors": ["ToadKing", "Twedis"],
+      "date": "04.22",
       "tags": []
     },
     {
@@ -375,7 +375,7 @@
       "image": "0054.png",
       "name": "Dino",
       "authors": ["Decay", "ashvira"],
-      "date": "04.24",
+      "date": "04.22",
       "tags": []
     },
     {
@@ -571,7 +571,7 @@
       "image": "0082.png",
       "name": "",
       "authors": ["Drk"],
-      "date": "",
+      "date": "07.2023",
       "tags": ["anime"]
     },
     {
