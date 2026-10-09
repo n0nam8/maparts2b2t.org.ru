@@ -986,6 +986,20 @@
       "authors": ["REZONATOR"],
       "date": "01.25",
       "tags": ["people"]
+    },
+	{
+      "image": "0142.png",
+      "name": "White square (carpets)",
+      "authors": ["gazon"],
+      "date": "08.26",
+      "tags": []
+    },
+	{
+      "image": "0143.png",
+      "name": "White square (bone block)",
+      "authors": ["GoryGoraPlay_"],
+      "date": "03.26",
+      "tags": []
     }
   ],
 
@@ -1346,6 +1360,14 @@
       "image": "b045.png",
       "name": "kazakstan flag",
       "authors": ["Twedis"],
+      "size": [4, 2],
+      "date": "04.22",
+      "tags": ["flags"]
+    },
+	{
+      "image": "b046.png",
+      "name": "ukranian flag",
+      "authors": ["ToadKing", "Twedis"],
       "size": [4, 2],
       "date": "04.22",
       "tags": ["flags"]
