@@ -222,21 +222,21 @@
       "name": "gray square",
       "authors": [],
       "date": "",
-      "tags": []
+      "tags": ["color"]
     },
     {
       "image": "0033.png",
       "name": "blue square",
       "authors": ["ToadKing", "Twedis"],
       "date": "04.22",
-      "tags": []
+      "tags": ["color"]
     },
     {
       "image": "0034.png",
       "name": "yellow square",
       "authors": ["ToadKing", "Twedis"],
       "date": "04.22",
-      "tags": []
+      "tags": ["color"]
     },
     {
       "image": "0035.png",
@@ -250,7 +250,7 @@
       "name": "black square",
       "authors": ["Fisher", "gR0m0vEpgh3c"],
       "date": "01.24",
-      "tags": []
+      "tags": ["color"]
     },
     {
       "image": "0037.png",
@@ -989,17 +989,17 @@
     },
 	{
       "image": "0142.png",
-      "name": "White square (carpets)",
+      "name": "White square (snow)",
       "authors": ["gazon"],
       "date": "08.26",
-      "tags": []
+      "tags": ["color"]
     },
 	{
       "image": "0143.png",
       "name": "White square (quartz)",
       "authors": ["GoryGoraPlay_"],
       "date": "03.26",
-      "tags": []
+      "tags": ["color"]
     }
   ],
 
