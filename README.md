@@ -1,6 +1,5 @@
-# maparts2b2t.org.ru
-maparts archive for 2b2t.org.ru
+<p align="center">
+  <img src="data/assets/logo-large.png" width="120">
+</p>
 
-created by \_n0nam3_
-
-idea by \_n0nam3_ & TheFullZooMi
+<h1 align="center">2b2t.org.ru MapArt Archive</h1>
