@@ -296,7 +296,6 @@ const AS = {key: 'arts', dir: 'desc'};
 function authorsPage() {
   const rows = authorRows(D.filter(vis));
   const k = AS.key;
-  const o = k === 'arts' ? 'maps' : 'arts';
 
   // the place is always counted from the biggest number; equal numbers share a place
   const best = [...rows].sort(authorOrder(k));
@@ -305,9 +304,8 @@ function authorsPage() {
     const prev = best[i - 1];
     place.set(r, prev && prev.arts === r.arts && prev.maps === r.maps ? place.get(prev) : i + 1);
   });
-  const list = AS.dir === 'desc'
-    ? best
-    : [...rows].sort((x, y) => x[k] - y[k] || y[o] - x[o] || x.name.localeCompare(y.name));
+  // ascending is the same list turned over, so the places always run in order
+  const list = AS.dir === 'desc' ? best : [...best].reverse();
 
   const th = (key, label) => {
     const on = AS.key === key;
