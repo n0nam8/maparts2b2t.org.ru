@@ -202,7 +202,6 @@ footer > :first-child {
   image-rendering: pixelated;
 }
 
-/* the caption that appears on hover */
 .fbtn::after {
   content: attr(data-tip);
   position: absolute;
@@ -409,7 +408,7 @@ button:hover,
   }
 }
 
-/* ---------- catalog filters ---------- */
+/* ---------- gallery filters ---------- */
 
 .bar {
   display: flex;
@@ -692,6 +691,10 @@ button:disabled {
   white-space: nowrap;
 }
 
+.atable tbody tr {
+  cursor: pointer;
+}
+
 .atable tbody tr:hover {
   background: var(--bg);
 }
@@ -750,8 +753,8 @@ button:disabled {
   cursor: zoom-in;
 }
 
-.shot .acts {
-  margin-top: 10px;
+.art .acts {
+  margin-top: 16px;
 }
 
 dl {
@@ -903,6 +906,21 @@ dd > a:not(.chip) {
     right: auto;
     width: max-content;
     max-width: 100%;
+  }
+
+  .atable th,
+  .atable td {
+    padding: 8px 6px;
+  }
+
+  .atable th:first-child,
+  .atable td:first-child {
+    padding-left: 10px;
+  }
+
+  .atable th:last-child,
+  .atable td:last-child {
+    padding-right: 10px;
   }
 }
 

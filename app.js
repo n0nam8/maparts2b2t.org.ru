@@ -8,11 +8,9 @@ const LS = {
   set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
 };
 
-// Folders and files.
 const IMG = 'data/arts/';
 const NOIMG = 'data/assets/no-image.png';
 
-// Minimal monochrome icons: the theme button and the sort arrows.
 const ICON = {
   down: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   up: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
@@ -20,11 +18,11 @@ const ICON = {
   sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
 };
 
-let D = [];            // arts
-let LOC = {};          // loaded locales
-let T = {};            // current locale
+let D = [];
+let LOC = {};
+let T = {};
 let TF = {};           // fallback locale (en)
-let F;                 // gallery filters
+let F;
 let cols = 0;          // cards per row on the home page
 let acols = 0;         // columns of the top authors on the home page
 const S = {lang: 'ru', nsfw: false};
@@ -32,7 +30,7 @@ let SEL = new Set();           // selected arts (ids)
 let selectMode = false;
 let onSel = null;              // set by the gallery, called when the selection changes
 let backHash = '#/gallery';     // page to return to from an art page (the gallery keeps its filters)
-let curPage = '';               // page on the screen: home / gallery / authors / art
+let curPage = '';
 let savedScroll = null;         // {hash, y}: where the page we left for an art was scrolled
 
 // ---------- helpers ----------
@@ -60,10 +58,10 @@ const normDate = v => {
 };
 
 // The date filter works with months: a month is the number year * 12 + month - 1.
-const monthOf = s => +s.slice(0, 4) * 12 + +s.slice(5, 7) - 1;                 // from "YYYY-MM[-DD]"
-const monthIso = n => `${Math.floor(n / 12)}-${pad(n % 12 + 1)}`;               // "2026-05" (address bar)
-const monthStr = n => `${pad(n % 12 + 1)}.${pad(Math.floor(n / 12) % 100)}`;    // "05.26" (shown to the user)
-const monthParse = v => {                                                       // "05.26" or "05.2026"
+const monthOf = s => +s.slice(0, 4) * 12 + +s.slice(5, 7) - 1;
+const monthIso = n => `${Math.floor(n / 12)}-${pad(n % 12 + 1)}`;
+const monthStr = n => `${pad(n % 12 + 1)}.${pad(Math.floor(n / 12) % 100)}`;
+const monthParse = v => {
   const m = String(v).trim().match(/^(\d{1,2})\.(\d{2}|\d{4})$/);
   if (!m || +m[1] < 1 || +m[1] > 12) return NaN;
   return (m[2].length === 2 ? 2000 + +m[2] : +m[2]) * 12 + +m[1] - 1;
@@ -153,7 +151,6 @@ function parseArts(raw) {
   return out;
 }
 
-// Copies a link; the button says "copied" for a moment.
 function copyLink(btn, url, label, done) {
   const ok = () => {
     btn.textContent = t(done);
@@ -230,7 +227,6 @@ function route() {
   else if (next === 'authors') authorsPage();
   else home();
 
-  // a new page starts at the top; coming back from an art restores the old position
   if (next !== curPage) {
     const back = curPage === 'art' && savedScroll && savedScroll.hash === (location.hash || '#/');
     scrollTo(0, back ? savedScroll.y : 0);
@@ -295,7 +291,7 @@ const authorOrder = k => {
 const AUTHORS_SHOWN = {1: 9, 2: 8, 3: 9};
 const authCols = () => Math.max(1, Math.min(3, Math.floor((($('#app').clientWidth - 32) + 8) / 268)));
 
-const AS = {key: 'arts', dir: 'desc'};   // sorting of the authors table
+const AS = {key: 'arts', dir: 'desc'};
 
 function authorsPage() {
   const rows = authorRows(D.filter(vis));
@@ -313,7 +309,6 @@ function authorsPage() {
     ? best
     : [...rows].sort((x, y) => x[k] - y[k] || y[o] - x[o] || x.name.localeCompare(y.name));
 
-  // a sortable column title; the arrow shows up only on the column that is sorted now
   const th = (key, label) => {
     const on = AS.key === key;
     return `
@@ -330,7 +325,7 @@ function authorsPage() {
       </thead>
       <tbody>
         ${list.map(r => `
-          <tr>
+          <tr data-href="${esc(qs({q: r.name}))}">
             <td class="mu">${place.get(r)}</td>
             <td class="nick"><a href="${qs({q: r.name})}">${esc(r.name)}</a></td>
             <td class="num">${r.arts}</td>
@@ -339,7 +334,11 @@ function authorsPage() {
       </tbody>
     </table>`;
 
-  // a click on a title: the same column flips the direction, another column starts from the biggest
+  $('.atable tbody').onclick = e => {
+    const row = e.target.closest('tr');
+    if (row && !e.target.closest('a')) location.hash = row.dataset.href;
+  };
+
   $$('.atable th button').forEach(b => {
     b.onclick = () => {
       if (AS.key === b.dataset.k) {
@@ -398,7 +397,7 @@ function viewer(src) {
 
   const box = $('.vimg', v);
   const im = $('img', v);
-  const LEVELS = [1, 2];   // one click zooms in, the next one goes back
+  const LEVELS = [1, 2];
   let lvl = 0;
 
   const fit = () => {
@@ -417,7 +416,6 @@ function viewer(src) {
 
   im.onload = fit;
   fit();
-  // click: zoom in around the clicked point (the last step goes back to "fit")
   im.onclick = e => {
     const fx = e.offsetX / im.clientWidth;
     const fy = e.offsetY / im.clientHeight;
@@ -435,7 +433,6 @@ function viewer(src) {
 
 // ---------- gallery ----------
 
-// A slider with two thumbs + two manual inputs.
 function range(label, [min, max], [lo, hi], cb, isMonth) {
   const ts = isMonth ? monthStr : x => x;
   const fs = isMonth ? monthParse : Number;
@@ -475,7 +472,6 @@ function range(label, [min, max], [lo, hi], cb, isMonth) {
   return row;
 }
 
-// A dropdown button "Label: value" with the given rows inside.
 function dropdown(label, rows, text) {
   const el = document.createElement('details');
   el.className = 'dd';
@@ -501,7 +497,6 @@ function galleryPage(p) {
   const tags = Object.keys(cnt).sort((x, y) =>
     (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
-  // filters come from the address, so links like #/gallery?q=Steve work
   const rg = (k, f) => {
     const v = (p.get(k) || '').split('~');
     return v.length === 2 ? v.map((x, i) => { x = f(x); return isNaN(x) ? B[k][i] : x; }) : [...B[k]];
@@ -585,7 +580,6 @@ function galleryPage(p) {
   $('#fr').append(R.date.el, R.size.el, R.tag.el, mode, reset);
   $('.bar').append(R.sort.el);
 
-  // keep the filters and the selection in the address
   function syncUrl() {
     const o = [];
     if (F.q) o.push('q=' + enc(F.q));
@@ -603,7 +597,6 @@ function galleryPage(p) {
     syncUrl();
     const q = F.q.trim().toLowerCase();
     const inR = (v, r) => v >= r[0] && v <= r[1];
-    // with a search query, name matches go first, then authors, then tags
     const r = A.map(a => ({a, k: q ? rank(a, q) : 0}))
       .filter(({a, k}) =>
         (!q || k) &&
@@ -629,7 +622,6 @@ function galleryPage(p) {
     $('#gr').classList.toggle('selecting', selectMode);
   }
 
-  // the link carries the selection and opens it as "selected only"
   $('#copy').onclick = () => copyLink(
     $('#copy'),
     location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join('~') + '&s=sel',
@@ -652,7 +644,6 @@ function galleryPage(p) {
 
 // ---------- events ----------
 
-// In the selection mode a click on a card selects / unselects it instead of opening it.
 function toggleSel(c) {
   const id = c.dataset.id;
   if (SEL.has(id)) SEL.delete(id);
@@ -688,7 +679,7 @@ document.addEventListener('click', e => {
 addEventListener('scroll', closeCards, {passive: true});
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
 addEventListener('hashchange', route);
-// Esc: art page -> the page it was opened from, gallery / authors -> home (the viewer, a dropdown or the 18+ window take Esc first)
+// Esc: art -> back to where it was opened, gallery / authors -> home (an open viewer, dropdown or 18+ window takes Esc first)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if ($('#view').classList.contains('on') || $('#gate').classList.contains('on')) return;
@@ -711,7 +702,6 @@ addEventListener('resize', () => {
 (async () => {
   D = parseArts(await j('data/arts.json'));
 
-  // languages: lang/index.json lists the codes (add a language: put lang/xx.json and write xx in index.json)
   const codes = await j('lang/index.json').catch(() => ['ru', 'en']);
   const found = await Promise.all(codes.map(c => j(`lang/${c}.json`).then(d => [c, d]).catch(() => null)));
   found.filter(Boolean).forEach(([c, d]) => { LOC[c] = d; });
@@ -728,7 +718,6 @@ addEventListener('resize', () => {
     };
   });
 
-  // phones: the burger button shows / hides the tools (NSFW, language, theme)
   $('#burger').onclick = () => {
     const open = $('header').classList.toggle('open');
     $('#burger').setAttribute('aria-expanded', open);
