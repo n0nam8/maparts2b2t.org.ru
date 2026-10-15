@@ -11,7 +11,7 @@
       "image": "0002.png",
       "name": "Jasmine Leaf",
       "authors": ["Twedis"],
-      "date": "",
+      "date": "07.05.22",
       "tags": ["pony"]
     },
     {
@@ -395,7 +395,7 @@
     {
       "image": "0057.png",
       "name": "",
-      "authors": ["marunara"],
+      "authors": ["marunara9"],
       "date": "",
       "tags": ["memes"]
     },
@@ -661,7 +661,7 @@
     {
       "image": "0095.png",
       "name": "meru",
-      "authors": ["marunara"],
+      "authors": ["marunara9"],
       "date": "",
       "tags": ["anime"]
     },
@@ -1000,6 +1000,41 @@
       "authors": ["GoryGoraPlay_"],
       "date": "03.26",
       "tags": ["color"]
+    },
+	{
+      "image": "0144.png",
+      "name": "Kaguia",
+      "authors": ["Dosia"],
+      "date": "04.22",
+      "tags": ["anime"]
+    },
+	{
+      "image": "0145.png",
+      "name": "Turanga",
+      "authors": ["Dosia", "marunara9"],
+      "date": "05.23",
+      "tags": ["nsfw"]
+    },
+	{
+      "image": "0146.png",
+      "name": "",
+      "authors": ["Twedis", "MoonWhisper"],
+      "date": "",
+      "tags": [""]
+    },
+	{
+      "image": "0147.png",
+      "name": "",
+      "authors": ["Twedis", "MoonWhisper"],
+      "date": "",
+      "tags": [""]
+    }, 
+	{
+      "image": "0148.png",
+      "name": "",
+      "authors": [""],
+      "date": "",
+      "tags": [""]
     }
   ],
 
