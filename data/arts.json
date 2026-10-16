@@ -227,7 +227,7 @@
     {
       "image": "0033.png",
       "name": "blue square",
-      "authors": ["ToadKing", "Twedis"],
+      "authors": ["Twedis"],
       "date": "04.22",
       "tags": ["color"]
     },
@@ -990,8 +990,8 @@
 	{
       "image": "0142.png",
       "name": "White square (snow)",
-      "authors": ["gazon"],
-      "date": "08.26",
+      "authors": ["ashvira"],
+      "date": "06.22",
       "tags": ["color"]
     },
 	{
@@ -1041,6 +1041,20 @@
       "name": "газета #10",
       "authors": ["akiro"],
       "date": "13.10.26",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0150.png",
+      "name": "red square",
+      "authors": ["ashvira"],
+      "date": "06.22",
+      "tags": ["color"]
+    },
+	{
+      "image": "0151.png",
+      "name": "andromeda",
+      "authors": ["PAPYRUS_", "prizrak_bro"],
+      "date": "12.23",
       "tags": ["ads"]
     }
   ],
@@ -1402,14 +1416,6 @@
       "image": "b045.png",
       "name": "kazakstan flag",
       "authors": ["Twedis"],
-      "size": [4, 2],
-      "date": "04.22",
-      "tags": ["flags"]
-    },
-	{
-      "image": "b046.png",
-      "name": "ukranian flag",
-      "authors": ["ToadKing", "Twedis"],
       "size": [4, 2],
       "date": "04.22",
       "tags": ["flags"]
