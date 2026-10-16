@@ -12,6 +12,8 @@ const IMG = 'data/arts/';
 const NOIMG = 'data/assets/no-image.png';
 
 const ICON = {
+  copy: '<svg class="ico sm" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12"/><path d="M5 15H3V3h12v2"/></svg>',
+  check: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
   down: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   up: '<svg class="ico sm" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
   moon: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
@@ -24,6 +26,7 @@ let T = {};
 let TF = {};           // fallback locale (en)
 let F;
 let cols = 0;          // cards per row on the home page
+let searchTimer;
 let acols = 0;         // columns of the top authors on the home page
 const S = {lang: 'ru', nsfw: false};
 let SEL = new Set();           // selected arts (ids)
@@ -160,6 +163,16 @@ function copyLink(btn, url, label, done) {
   else prompt('', url);
 }
 
+function copyValue(btn) {
+  const text = btn.dataset.copy;
+  const ok = () => {
+    btn.innerHTML = ICON.check;
+    setTimeout(() => { btn.innerHTML = ICON.copy; }, 1500);
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, () => prompt('', text));
+  else prompt('', text);
+}
+
 async function j(u) {
   const r = await fetch(u);
   if (!r.ok) throw 0;
@@ -208,9 +221,10 @@ function gate(k, yes, no, onYes, onNo) {
 
 // Art page: where it was opened from (home or gallery with its filters) and the scroll position there.
 function route() {
+  clearTimeout(searchTimer);
   const [p, q] = location.hash.slice(1).split('?');
   const path = (p || '/').split('/').filter(Boolean);
-  const next = ['gallery', 'art', 'authors'].includes(path[0]) ? path[0] : 'home';
+  const next = !path[0] ? 'home' : ['gallery', 'art', 'authors'].includes(path[0]) ? path[0] : 'missing';
 
   if (next === 'art' && curPage !== 'art') savedScroll = {hash: backHash, y: scrollY};
   if (next === 'home') backHash = '#/';
@@ -225,6 +239,7 @@ function route() {
   if (next === 'gallery') galleryPage(new URLSearchParams(q || ''));
   else if (next === 'art') artPage(decodeURIComponent(path[1] || ''));
   else if (next === 'authors') authorsPage();
+  else if (next === 'missing') notFound('nf.link');
   else home();
 
   if (next !== curPage) {
@@ -352,25 +367,36 @@ function authorsPage() {
 
 // ---------- art page + fullscreen viewer (click to zoom) ----------
 
+function notFound(key) {
+  $('#app').innerHTML = `
+    <div class="nf">
+      <h1>${t(key)}</h1>
+      <a class="btn" href="#/">${t('nf.home')}</a>
+    </div>`;
+}
+
 function artPage(id) {
   const a = D.find(x => x.id === id);
   if (!a || !vis(a)) {
-    $('#app').innerHTML = `<p>${t('art.nf')}</p><a class="btn" href="#/gallery">${t('nav.gallery')}</a>`;
+    notFound('nf.art');
     return;
   }
+  const cbtn = v => (v
+    ? `<button class="cbtn" data-copy="${esc(v)}" title="${esc(t('art.copyval'))}" aria-label="${esc(t('art.copyval'))}">${ICON.copy}</button>`
+    : '');
   $('#app').innerHTML = `
     <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/gallery') ? 'nav.gallery' : 'nav.home')}</a>
     <div class="art">
       <div class="shot">${img(a)}</div>
       <div>
-        <h1>${ti(a)}</h1>
+        <div class="title"><h1>${ti(a)}</h1>${cbtn(a.name)}</div>
         <dl>
           <dt>${t('art.authors')}</dt>
-          <dd>${a.authors.map(n => `<a href="${qs({q: n})}">${esc(n)}</a>`).join(', ') || t('na')}</dd>
+          <dd class="cp"><span>${a.authors.map(n => `<a href="${qs({q: n})}">${esc(n)}</a>`).join(', ') || t('na')}</span>${cbtn(a.authors.join(', '))}</dd>
           <dt>${t('art.size')}</dt>
           <dd>${szFull(a)}</dd>
           <dt>${t('art.date')}</dt>
-          <dd>${a.date ? fd(a.date) : t('na')}</dd>
+          <dd class="cp"><span>${a.date ? fd(a.date) : t('na')}</span>${cbtn(a.date ? fd(a.date) : '')}</dd>
           <dt>${t('art.tags')}</dt>
           <dd>${a.tags.map(g => `<a class="chip" href="${qs({tag: g})}">${esc(tg(g))}</a>`).join(' ') || t('na')}</dd>
         </dl>
@@ -381,6 +407,7 @@ function artPage(id) {
       </div>
     </div>`;
   $('.shot img').onclick = e => viewer(e.target.src);
+  $$('.cbtn').forEach(b => { b.onclick = () => copyValue(b); });
   $('#copy-art').onclick = () => copyLink(
     $('#copy-art'), location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
   // there is no file to download while the "no image" picture is shown
@@ -405,11 +432,23 @@ function viewer(src) {
     im.style.height = im.naturalHeight * s + 'px';
     im.style.cursor = lvl === LEVELS.length - 1 ? 'zoom-out' : 'zoom-in';
   };
+  // the viewer takes one history step, so the browser's Back arrow closes it first
+  history.pushState({viewer: true}, '', location.href);
+  let pushed = true;
   const key = e => { if (e.key === 'Escape') close(); };
+  const onPop = () => {
+    pushed = false;
+    close();
+  };
   const close = () => {
     v.classList.remove('on');
     removeEventListener('resize', fit);
     removeEventListener('keydown', key);
+    removeEventListener('popstate', onPop);
+    if (pushed) {
+      pushed = false;
+      history.back();
+    }
   };
 
   im.onload = fit;
@@ -426,6 +465,7 @@ function viewer(src) {
   box.onclick = e => { if (e.target === box) close(); };
   addEventListener('resize', fit);
   addEventListener('keydown', key);
+  addEventListener('popstate', onPop);
   v.classList.add('on');
 }
 
@@ -452,7 +492,6 @@ function range(label, [min, max], [lo, hi], cb, isMonth) {
     r2.value = hi;
     n1.value = ts(lo);
     n2.value = ts(hi);
-    r1.style.zIndex = lo > (min + max) / 2 ? 2 : 1;
   };
   const set = (a, b) => {
     if (isNaN(a) || isNaN(b)) return show();
@@ -466,6 +505,34 @@ function range(label, [min, max], [lo, hi], cb, isMonth) {
   r2.oninput = () => set(lo, Math.max(+r2.value, lo));
   n1.onchange = () => set(Math.min(fs(n1.value), hi), hi);
   n2.onchange = () => set(lo, Math.max(fs(n2.value), lo));
+
+  // The bar is dragged with the pointer: the nearest thumb follows it. When both thumbs
+  // stand at one spot, the direction of the first move decides which of them goes.
+  const bar = $('.rng', row);
+  const valueAt = e => {
+    const r = bar.getBoundingClientRect();
+    const v = min + (e.clientX - r.left - 8) / (r.width - 16) * (max - min);
+    return Math.round(Math.max(min, Math.min(max, v)));
+  };
+  let drag = null;
+  let from = 0;
+  const move = v => {
+    if (drag === 'any') {
+      if (v === from) return;
+      drag = v < from ? 'lo' : 'hi';
+    }
+    if (drag === 'lo') set(Math.min(v, hi), hi);
+    else set(lo, Math.max(v, lo));
+  };
+  bar.onpointerdown = e => {
+    const v = valueAt(e);
+    bar.setPointerCapture(e.pointerId);
+    from = v;
+    drag = v < lo ? 'lo' : v > hi ? 'hi' : lo === hi ? 'any' : (v - lo <= hi - v ? 'lo' : 'hi');
+    if (drag !== 'any') move(v);
+  };
+  bar.onpointermove = e => { if (drag) move(valueAt(e)); };
+  bar.onpointerup = bar.onpointercancel = () => { drag = null; };
   show();
   return row;
 }
@@ -636,7 +703,11 @@ function galleryPage(p) {
   };
   updSel();
 
-  $('#q').oninput = e => { F.q = e.target.value; upd(); };
+  $('#q').oninput = e => {
+    F.q = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(upd, 250);
+  };
   upd();
 }
 
@@ -677,7 +748,7 @@ document.addEventListener('click', e => {
 addEventListener('scroll', closeCards, {passive: true});
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
 addEventListener('hashchange', route);
-// Esc: art -> back to where it was opened, gallery / authors -> home (an open viewer, dropdown or 18+ window takes Esc first)
+// Esc: art -> back to where it was opened, any other page -> home (an open viewer, dropdown or 18+ window takes Esc first)
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if ($('#view').classList.contains('on') || $('#gate').classList.contains('on')) return;
@@ -688,7 +759,7 @@ addEventListener('keydown', e => {
   }
   const page = (location.hash.slice(1).split('?')[0] || '/').split('/').filter(Boolean)[0];
   if (page === 'art') location.hash = backHash;
-  else if (page === 'gallery' || page === 'authors') location.hash = '#/';
+  else if (page) location.hash = '#/';
 });
 addEventListener('resize', () => {
   const p = location.hash.slice(1).split('?')[0];
