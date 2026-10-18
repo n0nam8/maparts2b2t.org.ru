@@ -64,8 +64,8 @@ const normDate = v => {
 
 // The date filter works with months: a month is the number year * 12 + month - 1.
 const monthOf = s => +s.slice(0, 4) * 12 + +s.slice(5, 7) - 1;
-const monthIso = n => `${Math.floor(n / 12)}-${pad(n % 12 + 1)}`;
 const monthStr = n => `${pad(n % 12 + 1)}.${pad(Math.floor(n / 12) % 100)}`;
+const monthUrl = n => monthStr(n).replace('.', '-');
 const monthParse = v => {
   const m = String(v).trim().match(/^(\d{1,2})\.(\d{2}|\d{4})$/);
   if (!m || +m[1] < 1 || +m[1] > 12) return NaN;
@@ -77,7 +77,6 @@ const fd = s => (s.length === 7
   ? `${s.slice(5, 7)}.${s.slice(2, 4)}`
   : `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(2, 4)}`);
 const enc = encodeURIComponent;
-// links to the gallery; the query is written by hand so that "~" and "," stay readable
 const qs = o => '#/gallery?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
 const sz = a => (hasSize(a) ? `${a.size[0]} × ${a.size[1]}` : t('na'));
 const szFull = a => (hasSize(a) ? `${sz(a)} (${P('maps', area(a))})` : t('na'));
@@ -612,20 +611,24 @@ function galleryPage(p) {
   const tags = Object.keys(cnt).sort((x, y) =>
     (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
-  const rg = (k, f) => {
-    const v = (p.get(k) || '').split('~');
-    return v.length === 2 ? v.map((x, i) => { x = f(x); return isNaN(x) ? B[k][i] : x; }) : [...B[k]];
+  // d=mm-yy-mm-yy, w=a-b, h=a-b; a value that does not fit leaves that end of the range at its full value
+  const rg = k => {
+    const v = (p.get(k) || '').split('-');
+    const r = k === 'd'
+      ? (v.length === 4 ? [monthParse(v[0] + '.' + v[1]), monthParse(v[2] + '.' + v[3])] : [])
+      : (v.length === 2 ? v.map(x => (x === '' ? NaN : Number(x))) : []);
+    return [0, 1].map(i => (isNaN(r[i]) ? B[k][i] : r[i]));
   };
   F = {
     q: p.get('q') || '',
     s: p.get('s') || 'new',
     tags: (p.get('tag') || '').split(',').filter(Boolean),
-    d: rg('d', monthOf),
-    w: rg('w', Number),
-    h: rg('h', Number)
+    d: rg('d'),
+    w: rg('w'),
+    h: rg('h')
   };
   backHash = location.hash;
-  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split('~').filter(Boolean));
+  if (p.has('sel')) SEL = new Set((p.get('sel') || '').split(',').filter(Boolean));
   const same = k => F[k][0] === B[k][0] && F[k][1] === B[k][1];
 
   $('#app').innerHTML = `
@@ -695,15 +698,16 @@ function galleryPage(p) {
   $('#fr').append(R.date.el, R.size.el, R.tag.el, mode, reset);
   $('.bar').append(R.sort.el);
 
+  // The address is written by hand: lists are joined with "," and ranges with "-", both stay unescaped.
   function syncUrl() {
     const o = [];
     if (F.q) o.push('q=' + enc(F.q));
     if (F.s !== 'new') o.push('s=' + F.s);
     if (F.tags.length) o.push('tag=' + F.tags.map(enc).join(','));
-    [['d', monthIso], ['w', x => x], ['h', x => x]].forEach(([k, f]) => {
-      if (!same(k)) o.push(`${k}=${F[k].map(f).join('~')}`);
+    ['d', 'w', 'h'].forEach(k => {
+      if (!same(k)) o.push(`${k}=${F[k].map(k === 'd' ? monthUrl : String).join('-')}`);
     });
-    if (SEL.size) o.push('sel=' + [...SEL].map(enc).join('~'));
+    if (SEL.size) o.push('sel=' + [...SEL].map(enc).join(','));
     history.replaceState(history.state, '', '#/gallery' + (o.length ? '?' + o.join('&') : ''));
     backHash = location.hash;
   }
@@ -739,7 +743,7 @@ function galleryPage(p) {
 
   $('#copy').onclick = () => copyLink(
     $('#copy'),
-    location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join('~') + '&s=sel',
+    location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join(',') + '&s=sel',
     'sel.copy', 'sel.copied');
   $('#clr').onclick = () => {
     SEL.clear();
