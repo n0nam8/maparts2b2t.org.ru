@@ -27,6 +27,8 @@ let TF = {};           // fallback locale (en)
 let F;
 let cols = 0;          // cards per row on the home page
 let searchTimer;
+let revealed = null;       // id of the nsfw art the user chose to look at (until he leaves it)
+let depth = 0;              // how deep the current history entry is inside the site (0 = where the visit began)
 let acols = 0;         // columns of the top authors on the home page
 const S = {lang: 'ru', nsfw: false};
 let SEL = new Set();           // selected arts (ids)
@@ -44,7 +46,7 @@ const P = (k, n) => {
   return (o[new Intl.PluralRules(S.lang).select(n)] || o.other || '').replace('{n}', n);
 };
 const tg = g => T['tag.' + g] ?? TF['tag.' + g] ?? g;
-const vis = a => S.nsfw || !a.tags.includes('nsfw');
+const blurred = a => a.tags.includes('nsfw') && !S.nsfw;
 const hasSize = a => !!a.size;
 const area = a => (hasSize(a) ? a.size[0] * a.size[1] : 0);
 const ti = a => esc(a.name || t('na'));
@@ -109,7 +111,7 @@ const img = a => `<img loading="lazy" src="${IMG}${encodeURIComponent(a.image)}"
   onerror="this.onerror=null;this.src='${NOIMG}'">`;
 
 const card = a => `
-  <a class="card${SEL.has(a.id) ? ' sel' : ''}" data-id="${esc(a.id)}" href="#/art/${encodeURIComponent(a.id)}">
+  <a class="card${SEL.has(a.id) ? ' sel' : ''}${blurred(a) ? ' blur' : ''}" data-id="${esc(a.id)}" href="#/art/${encodeURIComponent(a.id)}">
     ${img(a)}
     <div class="info">
       <b>${ti(a)}</b>
@@ -133,9 +135,8 @@ const parseSize = v => {
 // arts.json: groups named "1x1", "2x2"... give the size to every art inside;
 // any other group ("other") needs an explicit "size" for each art.
 function parseArts(raw) {
-  const groups = Array.isArray(raw) ? {other: raw} : raw;
   const out = [];
-  Object.entries(groups).forEach(([key, arts]) => {
+  Object.entries(raw).forEach(([key, arts]) => {
     const def = parseSize(key);
     (arts || []).forEach(a => {
       const image = clean(a && a.image);
@@ -179,7 +180,7 @@ async function j(u) {
   return r.json();
 }
 
-// ---------- settings: language, theme, 18+ ----------
+// ---------- settings: language, theme, nsfw ----------
 
 function setLang(l) {
   S.lang = l;
@@ -206,14 +207,24 @@ function setNsfw(v) {
   route();
 }
 
-function gate(k, yes, no, onYes, onNo) {
+function gate(title, text, buttons) {
   const m = $('#gate');
-  $('#g-t').textContent = t(k + '.t');
-  $('#g-x').textContent = t(k + '.x');
-  $('#g-y').textContent = t(yes);
-  $('#g-n').textContent = t(no);
-  $('#g-y').onclick = () => { m.classList.remove('on'); onYes(); };
-  $('#g-n').onclick = () => { m.classList.remove('on'); if (onNo) onNo(); };
+  m.innerHTML = `
+    <div class="box">
+      <h2>${esc(t(title))}</h2>
+      <p>${esc(t(text))}</p>
+      <div class="acts"></div>
+    </div>`;
+  $('.acts', m).append(...buttons.map(([key, cls, act]) => {
+    const b = document.createElement('button');
+    b.textContent = t(key);
+    b.className = cls;
+    b.onclick = () => {
+      m.classList.remove('on');
+      act();
+    };
+    return b;
+  }));
   m.classList.add('on');
 }
 
@@ -222,10 +233,12 @@ function gate(k, yes, no, onYes, onNo) {
 // Art page: where it was opened from (home or gallery with its filters) and the scroll position there.
 function route() {
   clearTimeout(searchTimer);
+  $('#gate').classList.remove('on');
   const [p, q] = location.hash.slice(1).split('?');
   const path = (p || '/').split('/').filter(Boolean);
   const next = !path[0] ? 'home' : ['gallery', 'art', 'authors'].includes(path[0]) ? path[0] : 'missing';
 
+  if (next !== 'art' || decodeURIComponent(path[1] || '') !== revealed) revealed = null;
   if (next === 'art' && curPage !== 'art') savedScroll = {hash: backHash, y: scrollY};
   if (next === 'home') backHash = '#/';
 
@@ -252,7 +265,7 @@ function route() {
 // ---------- home ----------
 
 function home() {
-  const A = D.filter(vis);
+  const A = D;
   cols = perRow();
 
   acols = authCols();
@@ -309,7 +322,7 @@ const authCols = () => Math.max(1, Math.min(3, Math.floor((($('#app').clientWidt
 const AS = {key: 'arts', dir: 'desc'};
 
 function authorsPage() {
-  const rows = authorRows(D.filter(vis));
+  const rows = authorRows(D);
   const k = AS.key;
 
   // the place is always counted from the biggest number; equal numbers share a place
@@ -367,27 +380,57 @@ function authorsPage() {
 
 // ---------- art page + fullscreen viewer (click to zoom) ----------
 
+const hashOf = u => new URL(u).hash || '#/';
+
+// Every history entry remembers how many steps it is away from the page where the visit began
+// (0 = that page), which page it was opened from (from) and which page was open right before it
+// (prev), so "Back" and the way back from an art page stay correct after a reload.
+function stampDepth(first, old) {
+  const s = history.state;
+  if (s && typeof s.d === 'number') {
+    depth = s.d;
+    if (s.from) backHash = s.from;
+  } else {
+    depth = first ? 0 : depth + 1;
+    history.replaceState({...s, d: depth, from: backHash, prev: first ? null : hashOf(old)}, '');
+  }
+}
+
+const goBack = () => {
+  if (depth > 0) history.back();
+  else location.hash = '#/';
+};
+
+// "←" and Esc on an art page. If the page we came from is right behind us in history, step back to it:
+// a new entry would make the browser's Back return to the art.
+const leaveArt = () => {
+  if (history.state && history.state.prev === backHash) history.back();
+  else location.hash = backHash;
+};
+
 function notFound(key) {
   $('#app').innerHTML = `
     <div class="nf">
       <h1>${t(key)}</h1>
-      <a class="btn" href="#/">${t('nf.home')}</a>
+      <button id="nf-back">${t(depth > 0 ? 'go.back' : 'go.home')}</button>
     </div>`;
+  $('#nf-back').onclick = goBack;
 }
 
 function artPage(id) {
   const a = D.find(x => x.id === id);
-  if (!a || !vis(a)) {
+  if (!a) {
     notFound('nf.art');
     return;
   }
+  const hidden = blurred(a) && revealed !== a.id;
   const cbtn = v => (v
     ? `<button class="cbtn" data-copy="${esc(v)}" title="${esc(t('art.copyval'))}" aria-label="${esc(t('art.copyval'))}">${ICON.copy}</button>`
     : '');
   $('#app').innerHTML = `
     <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/gallery') ? 'nav.gallery' : 'nav.home')}</a>
     <div class="art">
-      <div class="shot">${img(a)}</div>
+      <div class="shot${hidden ? ' blur' : ''}">${img(a)}${hidden ? `<button class="reveal" id="reveal"><span>${t('nsfw.reveal')}</span></button>` : ''}</div>
       <div>
         <div class="title"><h1>${ti(a)}</h1>${cbtn(a.name)}</div>
         <dl>
@@ -406,12 +449,18 @@ function artPage(id) {
         </div>
       </div>
     </div>`;
+  $('#app > a.mu').onclick = e => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;   // "open in a new tab" keeps working
+    e.preventDefault();
+    leaveArt();
+  };
   $('.shot img').onclick = e => viewer(e.target.src);
   $$('.cbtn').forEach(b => { b.onclick = () => copyValue(b); });
   $('#copy-art').onclick = () => copyLink(
     $('#copy-art'), location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
   // there is no file to download while the "no image" picture is shown
   $('#dl').onclick = e => { if ($('.shot img').src.endsWith(NOIMG)) e.preventDefault(); };
+  if (hidden) $('#reveal').onclick = () => { revealed = a.id; route(); };
 }
 
 function viewer(src) {
@@ -432,8 +481,9 @@ function viewer(src) {
     im.style.height = im.naturalHeight * s + 'px';
     im.style.cursor = lvl === LEVELS.length - 1 ? 'zoom-out' : 'zoom-in';
   };
-  // the viewer takes one history step, so the browser's Back arrow closes it first
-  history.pushState({viewer: true}, '', location.href);
+  // the viewer takes one history step, so the browser's Back arrow closes it first;
+  // its entry keeps the art's depth and "from" (a reload must not lose them) and has the art right behind it
+  history.pushState({...history.state, prev: hashOf(location.href), viewer: true}, '', location.href);
   let pushed = true;
   const key = e => { if (e.key === 'Escape') close(); };
   const onPop = () => {
@@ -548,7 +598,7 @@ function dropdown(label, rows, text) {
 }
 
 function galleryPage(p) {
-  const A = D.filter(vis);
+  const A = D;
   const months = A.filter(a => a.date).map(a => monthOf(a.date));
   const sized = A.filter(hasSize);
   const B = {
@@ -654,7 +704,7 @@ function galleryPage(p) {
       if (!same(k)) o.push(`${k}=${F[k].map(f).join('~')}`);
     });
     if (SEL.size) o.push('sel=' + [...SEL].map(enc).join('~'));
-    history.replaceState(null, '', '#/gallery' + (o.length ? '?' + o.join('&') : ''));
+    history.replaceState(history.state, '', '#/gallery' + (o.length ? '?' + o.join('&') : ''));
     backHash = location.hash;
   }
 
@@ -666,7 +716,7 @@ function galleryPage(p) {
       .filter(({a, k}) =>
         (!q || k) &&
         (F.s !== 'sel' || SEL.has(a.id)) &&
-        F.tags.every(g => a.tags.includes(g)) &&
+        (!F.tags.length || F.tags.some(g => a.tags.includes(g))) &&
         (a.date ? inR(monthOf(a.date), F.d) : same('d')) &&
         (hasSize(a) ? inR(a.size[0], F.w) && inR(a.size[1], F.h) : same('w') && same('h')))
       .sort((x, y) => x.k - y.k || (SORTS[F.s] || SORTS.new)(x.a, y.a))
@@ -747,18 +797,26 @@ document.addEventListener('click', e => {
 
 addEventListener('scroll', closeCards, {passive: true});
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
-addEventListener('hashchange', route);
-// Esc: art -> back to where it was opened, any other page -> home (an open viewer, dropdown or 18+ window takes Esc first)
+addEventListener('hashchange', e => {
+  stampDepth(false, e.oldURL);
+  route();
+});
+// Esc closes the first of: the viewer (it has its own handler), the nsfw window (same as "Cancel"), open dropdowns.
+// With none of them open: art -> back to where it was opened, any other page -> home.
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if ($('#view').classList.contains('on') || $('#gate').classList.contains('on')) return;
+  if ($('#view').classList.contains('on')) return;
+  if ($('#gate').classList.contains('on')) {
+    $('#gate').classList.remove('on');
+    return;
+  }
   const open = $$('.dd[open]');
   if (open.length) {
     open.forEach(d => d.removeAttribute('open'));
     return;
   }
   const page = (location.hash.slice(1).split('?')[0] || '/').split('/').filter(Boolean)[0];
-  if (page === 'art') location.hash = backHash;
+  if (page === 'art') leaveArt();
   else if (page) location.hash = '#/';
 });
 addEventListener('resize', () => {
@@ -809,18 +867,14 @@ addEventListener('resize', () => {
     if (!LS.get('theme')) setTheme(systemTheme());
   });
 
-  S.nsfw = LS.get('age') === 'adult' && LS.get('nsfw') === '1';
+  S.nsfw = LS.get('nsfw') === '1';
   $('#nsfw').checked = S.nsfw;
   $('#nsfw').onchange = e => {
     if (!e.target.checked) return setNsfw(false);
     e.target.checked = false;
-    gate('gate2', 'gate.yes', 'gate2.cancel', () => { LS.set('age', 'adult'); setNsfw(true); });
+    gate('nsfw.on.t', 'nsfw.on.x', [['nsfw.on', 'danger', () => setNsfw(true)], ['cancel', '', () => {}]]);
   };
 
+  stampDepth(true);
   setLang(l);
-  if (!LS.get('age')) {
-    gate('gate', 'gate.yes', 'gate.no',
-      () => { LS.set('age', 'adult'); setNsfw(true); },
-      () => { LS.set('age', 'minor'); setNsfw(false); });
-  }
 })();

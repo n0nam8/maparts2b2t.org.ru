@@ -272,7 +272,8 @@ button:hover,
   display: inline-block;
 }
 
-#g-y {
+button.danger,
+button.danger:hover {
   background: var(--red);
   border-color: var(--red);
   color: #fff;
@@ -351,6 +352,51 @@ button:hover,
   aspect-ratio: 1;
   object-fit: contain;
   image-rendering: pixelated;
+}
+
+/* while the nsfw mode is off, an nsfw art is blurred and marked */
+.card.blur img {
+  filter: blur(16px);
+  clip-path: inset(0);
+}
+
+.shot.blur img {
+  filter: blur(40px);
+  clip-path: inset(0);
+}
+
+.shot {
+  position: relative;
+}
+
+.reveal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  font-weight: 600;
+  background: none;
+  border: 0;
+}
+
+.reveal span {
+  padding: 8px 14px;
+  background: #000a;
+}
+
+.card.blur::before {
+  content: "NSFW";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  padding: 2px 8px;
+  color: #fff;
+  font-size: .8em;
+  font-weight: 700;
+  background: var(--red);
 }
 
 .info {
