@@ -495,7 +495,7 @@
       "name": "",
       "authors": ["DOTOR_FORCSCORP", "patriarhat"],
       "date": "09.26",
-      "tags": []
+      "tags": ["people", "memes"]
     },
     {
       "image": "0072.png",
@@ -887,7 +887,7 @@
       "name": "Stalin",
       "authors": ["Wither"],
       "date": "06.24",
-      "tags": []
+      "tags": ["people"]
     },
     {
       "image": "0128.png",
@@ -1056,6 +1056,181 @@
       "authors": ["PAPYRUS_", "prizrak_bro"],
       "date": "12.23",
       "tags": ["ads"]
+    },
+	{
+      "image": "0152.png",
+      "name": "хуесосc team",
+      "authors": ["Diff", "nikee99"],
+      "date": "05.24",
+      "tags": ["ads", "people"]
+    },
+	{
+      "image": "0153.png",
+      "name": "LuckyShop",
+      "authors": ["winston_r"],
+      "date": "11.23",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0154.png",
+      "name": "",
+      "authors": ["BLODI", "Drachentoter"],
+      "date": "07.24",
+      "tags": []
+    },
+	{
+      "image": "0155.png",
+      "name": "",
+      "authors": ["Dosia", "marunara9"],
+      "date": "",
+      "tags": ["anime"]
+    },
+	{
+      "image": "0156.png",
+      "name": "LemYr0",
+      "authors": ["LemYr0"],
+      "date": "08.24",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0157.png",
+      "name": "zov",
+      "authors": ["TheSheaker"],
+      "date": "02.24",
+      "tags": []
+    },
+	{
+      "image": "0158.png",
+      "name": "",
+      "authors": ["K1GC"],
+      "date": "04.22",
+      "tags": ["anime"]
+    },
+	{
+      "image": "0159.png",
+      "name": "putin",
+      "authors": ["Dosia"],
+      "date": "",
+      "tags": ["people"]
+    }, 
+	{
+      "image": "0160.png",
+      "name": "ЧВК ВАГНЕР",
+      "authors": ["gR0m0vEpgh3c"],
+      "date": "",
+      "tags": []
+    },
+	{
+      "image": "0161.png",
+      "name": "",
+      "authors": ["Alevet", "dapl135"],
+      "date": "04.22",
+      "tags": []
+    },
+	{
+      "image": "0162.png",
+      "name": "",
+      "authors": ["Decay"],
+      "date": "04.22",
+      "tags": ["anime"]
+    },
+	{
+      "image": "0163.png",
+      "name": "library",
+      "authors": ["1Minstail1"],
+      "date": "07.23",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0164.png",
+      "name": "ru",
+      "authors": ["InataEmpire"],
+      "date": "08.24",
+      "tags": ["flags"]
+    },
+	{
+      "image": "0165.png",
+      "name": "zelensky",
+      "authors": ["gR0m0vEpgh3c"],
+      "date": "06.23",
+      "tags": ["people"]
+    },
+	{
+      "image": "0166.png",
+      "name": "",
+      "authors": ["Drakolich"],
+      "date": "",
+      "tags": ["people"]
+    },
+	{
+      "image": "0167.png",
+      "name": "Thunder Store",
+      "authors": ["gR0m0vEpgh3c"],
+      "date": "04.24",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0168.png",
+      "name": "",
+      "authors": ["korochka_hleba"],
+      "date": "04.22",
+      "tags": ["anime"]
+    },
+	{
+      "image": "0169.png",
+      "name": "конфа",
+      "authors": ["Kama1403"],
+      "date": "",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0170.png",
+      "name": "",
+      "authors": ["ashvira", "Twedis"],
+      "date": "04.22",
+      "tags": ["cats"]
+    },
+	{
+      "image": "0171.png",
+      "name": "ash",
+      "authors": ["ashvira"],
+      "date": "05.22",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0172.png",
+      "name": "Yobaface",
+      "authors": ["DEFLORATOR"],
+      "date": "04.22",
+      "tags": ["memes"]
+    },
+	{
+      "image": "0173.png",
+      "name": "cat of the speed",
+      "authors": ["Cme3Tan4iK"],
+      "date": "07.24",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0174.png",
+      "name": "advent cat",
+      "authors": ["Kuslotnaya_Bomba", "KEKC", "RononoaZoro", "Cast1el_F"],
+      "date": "12.23",
+      "tags": ["cats", "ads"]
+    },
+	{
+      "image": "0175.png",
+      "name": "eclips v2",
+      "authors": ["develss", "albatro"],
+      "date": "06.23",
+      "tags": ["ads"]
+    },
+	{
+      "image": "0176.png",
+      "name": "воля",
+      "authors": ["BLODI", "Xomep", "Drachentoter"],
+      "date": "07.24",
+      "tags": []
     }
   ],
 
