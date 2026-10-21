@@ -354,6 +354,11 @@ button.danger:hover {
   image-rendering: pixelated;
 }
 
+/* arts bigger than 1x1 are shown downscaled: smooth, because pixelated would turn the dithering into noise */
+.card.big img {
+  image-rendering: auto;
+}
+
 /* while the nsfw mode is off, an nsfw art is blurred and marked */
 .card.blur img {
   filter: blur(16px);
@@ -367,6 +372,8 @@ button.danger:hover {
 
 .shot {
   position: relative;
+  background: var(--sf);
+  border: 1px solid var(--bd);
 }
 
 .reveal {
@@ -792,10 +799,20 @@ button:disabled {
 .shot img {
   display: block;
   width: 100%;
-  background: var(--sf);
-  border: 1px solid var(--bd);
   image-rendering: pixelated;
   cursor: zoom-in;
+}
+
+.art.fit {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.art.fit.below {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.art.fit .shot {
+  justify-self: start;
 }
 
 .art .acts {

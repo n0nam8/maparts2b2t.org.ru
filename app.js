@@ -110,7 +110,7 @@ const img = a => `<img loading="lazy" src="${IMG}${encodeURIComponent(a.image)}"
   onerror="this.onerror=null;this.src='${NOIMG}'">`;
 
 const card = a => `
-  <a class="card${SEL.has(a.id) ? ' sel' : ''}${blurred(a) ? ' blur' : ''}" data-id="${esc(a.id)}" href="#/art/${encodeURIComponent(a.id)}">
+  <a class="card${area(a) > 1 ? ' big' : ''}${SEL.has(a.id) ? ' sel' : ''}${blurred(a) ? ' blur' : ''}" data-id="${esc(a.id)}" href="#/art/${encodeURIComponent(a.id)}">
     ${img(a)}
     <div class="info">
       <b>${ti(a)}</b>
@@ -439,8 +439,8 @@ function artPage(id) {
           <dd>${szFull(a)}</dd>
           <dt>${t('art.date')}</dt>
           <dd class="cp"><span>${a.date ? fd(a.date) : t('na')}</span>${cbtn(a.date ? fd(a.date) : '')}</dd>
-          <dt>${t('art.tags')}</dt>
-          <dd>${a.tags.map(g => `<a class="chip" href="${qs({tag: g})}">${esc(tg(g))}</a>`).join(' ') || t('na')}</dd>
+          ${a.tags.length ? `<dt>${t('art.tags')}</dt>
+          <dd>${a.tags.map(g => `<a class="chip" href="${qs({tag: g})}">${esc(tg(g))}</a>`).join(' ')}</dd>` : ''}
         </dl>
         <div class="acts">
           <button id="copy-art">${t('art.copy')}</button>
@@ -454,12 +454,52 @@ function artPage(id) {
     leaveArt();
   };
   $('.shot img').onclick = e => viewer(e.target.src);
+  $('.shot img').addEventListener('load', fitArt);
+  fitArt();
   $$('.cbtn').forEach(b => { b.onclick = () => copyValue(b); });
   $('#copy-art').onclick = () => copyLink(
     $('#copy-art'), location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
   // there is no file to download while the "no image" picture is shown
   $('#dl').onclick = e => { if ($('.shot img').src.endsWith(NOIMG)) e.preventDefault(); };
   if (hidden) $('#reveal').onclick = () => { revealed = a.id; route(); };
+}
+
+// Desktop art page: the art is as big as fits without scrolling, at a whole number of device pixels
+// per art pixel (smoothly downscaled when even 1x does not fit). The info goes beside it, or below if there is no room.
+function fitArt() {
+  const art = $('.art');
+  const im = $('.shot img');
+  if (!art || !im) return;
+  art.classList.remove('fit', 'below');
+  im.removeAttribute('style');
+  if (innerWidth <= 700 || !im.naturalWidth) return;
+
+  const INFO_MIN = 280;
+  const MIN_H = 320;
+  const BORDER = 2;
+  const dpr = devicePixelRatio || 1;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll';
+  document.body.append(probe);
+  const scrollbar = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+
+  const main = $('#app');
+  const w = Math.min(parseFloat(getComputedStyle(main).maxWidth) || Infinity, innerWidth - scrollbar)
+    - parseFloat(getComputedStyle(main).paddingLeft) * 2 - BORDER;
+  const top = $('.shot').getBoundingClientRect().top + scrollY;
+  const rest = parseFloat(getComputedStyle(main).paddingBottom) + $('footer').offsetHeight;
+  const h = Math.max(MIN_H, document.documentElement.clientHeight - top - rest - 1) - BORDER;
+
+  const fit = Math.min(w / im.naturalWidth, h / im.naturalHeight);
+  const steps = Math.floor(fit * dpr);
+  const scale = steps >= 1 ? steps / dpr : fit;
+  const width = im.naturalWidth * scale;
+  im.style.width = width + 'px';
+  im.style.height = im.naturalHeight * scale + 'px';
+  if (steps < 1) im.style.imageRendering = 'auto';
+  art.classList.add('fit');
+  if (w - width - parseFloat(getComputedStyle(art).columnGap) < INFO_MIN) art.classList.add('below');
 }
 
 function viewer(src) {
@@ -726,9 +766,10 @@ function galleryPage(p) {
       .sort((x, y) => x.k - y.k || (SORTS[F.s] || SORTS.new)(x.a, y.a))
       .map(x => x.a);
 
-    $('#cnt').textContent = t('found')
-      .replace('{arts}', P('arts', r.length))
-      .replace('{authors}', P('authors', new Set(r.flatMap(a => a.authors)).size));
+    const nAuthors = new Set(r.flatMap(a => a.authors)).size;
+    $('#cnt').textContent = nAuthors
+      ? t('found').replace('{arts}', P('arts', r.length)).replace('{authors}', P('authors', nAuthors))
+      : P('arts', r.length);
     $('#gr').innerHTML = r.length ? grid(r) : `<p class="mu">${t('gal.none')}</p>`;
     $$('.chip[data-g]').forEach(c => c.classList.toggle('on', F.tags.includes(c.dataset.g)));
     $$('.chip[data-s]').forEach(c => c.classList.toggle('on', F.s === c.dataset.s));
@@ -824,6 +865,7 @@ addEventListener('keydown', e => {
   else if (page) location.hash = '#/';
 });
 addEventListener('resize', () => {
+  if (curPage === 'art') fitArt();
   const p = location.hash.slice(1).split('?')[0];
   if ((p === '' || p === '/') && (perRow() !== cols || authCols() !== acols)) route();
 });
@@ -856,7 +898,8 @@ addEventListener('resize', () => {
 
   // language: the saved choice, otherwise the browser's preferred languages, otherwise English
   const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])
-    .map(x => x.slice(0, 2).toLowerCase());
+    .map(x => x.slice(0, 2).toLowerCase())
+    .map(x => (['uk', 'be', 'kk'].includes(x) ? 'ru' : x));
   let l = LS.get('lang');
   if (!LOC[l]) l = prefs.find(x => LOC[x]) || (LOC.en ? 'en' : codesFound[0]);
 
