@@ -1073,14 +1073,14 @@
     },
 	{
       "image": "0154.png",
-      "name": "",
+      "name": "незабудка",
       "authors": ["BLODI", "Drachentoter"],
       "date": "07.24",
       "tags": []
     },
 	{
       "image": "0155.png",
-      "name": "",
+      "name": "onnanoko ni kisu",
       "authors": ["Dosia", "marunara9"],
       "date": "",
       "tags": ["anime"]
@@ -1101,7 +1101,7 @@
     },
 	{
       "image": "0158.png",
-      "name": "",
+      "name": "OwO",
       "authors": ["K1GC"],
       "date": "04.22",
       "tags": ["anime"]
@@ -1594,6 +1594,14 @@
       "size": [4, 2],
       "date": "04.22",
       "tags": ["flags"]
+    },
+    {
+      "image": "b046.png",
+      "name": "carpet",
+      "authors": ["ZloiBeleahok", "ashvira"],
+      "size": [3, 3],
+      "date": "05.10.26",
+      "tags": []
     }
   ]
 }
