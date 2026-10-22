@@ -1553,6 +1553,13 @@
       "authors": ["Drk", "ashvira"],
       "date": "07.23",
       "tags": ["memes"]
+    },
+	{
+      "image": "0223.png",
+      "name": "",
+      "authors": ["Oduvanchik", "Lamnorka"],
+      "date": "05.10.26",
+      "tags": []
     }
   ],
 
@@ -1955,6 +1962,14 @@
       "authors": ["Drachentoter", "BLODI"],
       "size": [2, 1],
       "date": "08.24",
+      "tags": []
+    },
+    {
+      "image": "b051.png",
+      "name": "Ламнёнка",
+      "authors": ["gazon"],
+      "size": [1, 2],
+      "date": "10.26",
       "tags": []
     }
   ]
