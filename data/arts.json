@@ -1255,10 +1255,10 @@
     },
 	{
       "image": "0180.png",
-      "name": "",
+      "name": "Обезьяна",
       "authors": ["X_DARK_X"],
       "date": "",
-      "tags": []
+      "tags": ["animals"]
     },
 	{
       "image": "0181.png",
@@ -1585,7 +1585,7 @@
 	{
       "image": "0227.png",
       "name": "",
-      "authors": ["ROSTOL"],
+      "authors": ["ROSTOK"],
       "date": "07.26",
       "tags": ["people"]
     },
@@ -2065,6 +2065,14 @@
       "size": [2, 2],
       "date": "09.23",
       "tags": ["people"]
+    },
+    {
+      "image": "b055.png",
+      "name": "",
+      "authors": ["keglua", "ninkifaq"],
+      "size": [2, 1],
+      "date": "06.23",
+      "tags": ["anime"]
     }
   ]
 }
