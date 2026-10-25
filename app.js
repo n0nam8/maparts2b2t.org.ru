@@ -464,8 +464,9 @@ function artPage(id) {
   if (hidden) $('#reveal').onclick = () => { revealed = a.id; route(); };
 }
 
-// Desktop art page: the art is as big as fits without scrolling, at a whole number of device pixels
-// per art pixel (smoothly downscaled when even 1x does not fit). The info goes beside it, or below if there is no room.
+// Desktop art page: the art is as big as fits in the window above the footer (the footer is reached by scrolling),
+// at a whole number of device pixels per art pixel (smoothly downscaled when even 1x does not fit).
+// The info goes beside it, or below if there is no room.
 function fitArt() {
   const art = $('.art');
   const im = $('.shot img');
@@ -488,8 +489,8 @@ function fitArt() {
   const w = Math.min(parseFloat(getComputedStyle(main).maxWidth) || Infinity, innerWidth - scrollbar)
     - parseFloat(getComputedStyle(main).paddingLeft) * 2 - BORDER;
   const top = $('.shot').getBoundingClientRect().top + scrollY;
-  const rest = parseFloat(getComputedStyle(main).paddingBottom) + $('footer').offsetHeight;
-  const h = Math.max(MIN_H, document.documentElement.clientHeight - top - rest - 1) - BORDER;
+  const bottom = parseFloat(getComputedStyle(main).paddingBottom) + 1;
+  const h = Math.max(MIN_H, document.documentElement.clientHeight - top - bottom) - BORDER;
 
   const fit = Math.min(w / im.naturalWidth, h / im.naturalHeight);
   const steps = Math.floor(fit * dpr);
@@ -647,7 +648,7 @@ function galleryPage(p) {
   };
   const cnt = {};
   A.forEach(a => a.tags.forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
-  // the most used tags first, "nsfw" always at the bottom
+  // the most used tags first (over the whole archive, so the order never jumps while filtering), "nsfw" always at the bottom
   const tags = Object.keys(cnt).sort((x, y) =>
     (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
@@ -712,7 +713,7 @@ function galleryPage(p) {
 
   const list = document.createElement('div');
   list.className = 'taglist';
-  list.innerHTML = tags.map(g => `<button class="chip" data-g="${esc(g)}">${esc(tg(g))} (${cnt[g]})</button>`).join('');
+  list.innerHTML = tags.map(g => `<button class="chip" data-g="${esc(g)}">${esc(tg(g))}</button>`).join('');
   R.tag = dropdown(t('f.tag'), [list],
     () => (F.tags.length ? F.tags.map(tg).join(', ') : t('any.m')));
   $$('.chip', list).forEach(c => {
@@ -756,22 +757,29 @@ function galleryPage(p) {
     syncUrl();
     const q = F.q.trim().toLowerCase();
     const inR = (v, r) => v >= r[0] && v <= r[1];
-    const r = A.map(a => ({a, k: q ? rank(a, q) : 0}))
+    const fit = A.map(a => ({a, k: q ? rank(a, q) : 0}))
       .filter(({a, k}) =>
         (!q || k) &&
         (F.s !== 'sel' || SEL.has(a.id)) &&
-        (!F.tags.length || F.tags.some(g => a.tags.includes(g))) &&
         (a.date ? inR(monthOf(a.date), F.d) : same('d')) &&
-        (hasSize(a) ? inR(a.size[0], F.w) && inR(a.size[1], F.h) : same('w') && same('h')))
+        (hasSize(a) ? inR(a.size[0], F.w) && inR(a.size[1], F.h) : same('w') && same('h')));
+    const r = fit
+      .filter(({a}) => !F.tags.length || F.tags.some(g => a.tags.includes(g)))
       .sort((x, y) => x.k - y.k || (SORTS[F.s] || SORTS.new)(x.a, y.a))
       .map(x => x.a);
+    // a tag shows how many arts it would give with everything else as it is now
+    const n = {};
+    fit.forEach(({a}) => a.tags.forEach(g => { n[g] = (n[g] || 0) + 1; }));
 
     const nAuthors = new Set(r.flatMap(a => a.authors)).size;
     $('#cnt').textContent = nAuthors
       ? t('found').replace('{arts}', P('arts', r.length)).replace('{authors}', P('authors', nAuthors))
       : P('arts', r.length);
     $('#gr').innerHTML = r.length ? grid(r) : `<p class="mu">${t('gal.none')}</p>`;
-    $$('.chip[data-g]').forEach(c => c.classList.toggle('on', F.tags.includes(c.dataset.g)));
+    $$('.chip[data-g]').forEach(c => {
+      c.textContent = `${tg(c.dataset.g)} (${n[c.dataset.g] || 0})`;
+      c.classList.toggle('on', F.tags.includes(c.dataset.g));
+    });
     $$('.chip[data-s]').forEach(c => c.classList.toggle('on', F.s === c.dataset.s));
   }
 
