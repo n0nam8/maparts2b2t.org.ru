@@ -20,7 +20,6 @@
   --mu: #6a6c58;
   --ac: #6b8a2a;
   --on: #ffffff;
-  --red: #c00;
 }
 
 * {
@@ -45,8 +44,6 @@ h1,
 h2 {
   margin: 0 0 12px;
 }
-
-/* ---------- header / footer ---------- */
 
 header {
   position: sticky;
@@ -154,8 +151,7 @@ footer {
   border-top: 1px solid var(--bd);
 }
 
-/* the text takes the free space, so the buttons stay on the right;
-   if they do not fit, they move to their own line and are centered */
+/* the text fills the row, pushing the buttons right; wrapped buttons are centered */
 footer > :first-child {
   flex: 1 1 auto;
 }
@@ -240,8 +236,6 @@ section {
   color: var(--mu);
 }
 
-/* ---------- controls ---------- */
-
 select,
 input,
 button,
@@ -319,8 +313,6 @@ button.danger:hover {
   background: #fff;
 }
 
-/* ---------- cards ---------- */
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -354,12 +346,11 @@ button.danger:hover {
   image-rendering: pixelated;
 }
 
-/* arts bigger than 1x1 are shown downscaled: smooth, because pixelated would turn the dithering into noise */
+/* downscaled: pixelated would turn the dithering into noise */
 .card.big img {
   image-rendering: auto;
 }
 
-/* while the nsfw mode is off, an nsfw art is blurred and marked */
 .card.blur img {
   filter: blur(16px);
   clip-path: inset(0);
@@ -461,8 +452,6 @@ button.danger:hover {
     visibility: visible;
   }
 }
-
-/* ---------- gallery filters ---------- */
 
 .bar {
   display: flex;
@@ -595,28 +584,23 @@ button.danger:hover {
 
 .nums {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
-.nums {
-  flex-wrap: wrap;
-}
-
 .nums input {
+  flex: none;
   min-width: 0;
+  padding: 6px;
 }
 
 .nums input[type=number] {
-  flex: none;
   width: 4.6em;
-  padding: 6px;
 }
 
 .nums input[type=text] {
-  flex: none;
   width: 5.2em;
-  padding: 6px;
 }
 
 .taglist {
@@ -641,8 +625,6 @@ button.danger:hover {
   border-color: var(--ac);
   color: var(--on);
 }
-
-/* selection mode */
 
 .selbar {
   display: flex;
@@ -689,9 +671,6 @@ button:disabled {
   font-weight: 700;
 }
 
-/* ---------- home ---------- */
-
-/* the number of columns (--cols) is set by the script: a tile is never narrower than about 260px */
 .top {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), 1fr);
@@ -720,8 +699,6 @@ button:disabled {
 .top span {
   flex: none;
 }
-
-/* ---------- authors ---------- */
 
 .atable {
   width: 100%;
@@ -762,7 +739,7 @@ button:disabled {
   text-align: right;
 }
 
-/* long nicknames are cut with "..." instead of widening the table */
+/* ellipsis instead of a wider table */
 .atable .nick {
   width: 100%;
   max-width: 0;
@@ -786,8 +763,6 @@ button:disabled {
 .atable th button.active {
   color: var(--ac);
 }
-
-/* ---------- art page ---------- */
 
 .art {
   display: grid;
@@ -878,8 +853,6 @@ dd a:not(.chip) {
   margin-bottom: 20px;
 }
 
-/* ---------- modal / viewer ---------- */
-
 .modal {
   position: fixed;
   inset: 0;
@@ -940,8 +913,6 @@ dd a:not(.chip) {
   image-rendering: pixelated;
   cursor: zoom-in;
 }
-
-/* ---------- responsive ---------- */
 
 @media (max-width: 700px) {
   header {
@@ -1024,6 +995,12 @@ dd a:not(.chip) {
   .atable th:last-child,
   .atable td:last-child {
     padding-right: 10px;
+  }
+}
+
+@media (max-width: 340px) {
+  nav a {
+    padding: 6px;
   }
 }
 

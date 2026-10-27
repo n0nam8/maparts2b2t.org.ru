@@ -20,25 +20,24 @@ const ICON = {
   sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
 };
 
+const app = $('#app');
 let D = [];
 let LOC = {};
 let T = {};
-let TF = {};           // fallback locale (en)
+let TF = {};
 let F;
-let cols = 0;          // cards per row on the home page
+let homeCols = 0;
+let homeAuthCols = 0;
 let searchTimer;
-let revealed = null;       // id of the nsfw art the user chose to look at (until he leaves it)
-let depth = 0;              // how deep the current history entry is inside the site (0 = where the visit began)
-let acols = 0;         // columns of the top authors on the home page
+let revealed = null;   // nsfw art shown by the user's choice
+let depth = 0;   // history steps since the first page of the visit
 const S = {lang: 'ru', nsfw: false};
-let SEL = new Set();           // selected arts (ids)
+let SEL = new Set();
 let selectMode = false;
-let onSel = null;              // set by the gallery, called when the selection changes
-let backHash = '#/gallery';     // page to return to from an art page (the gallery keeps its filters)
+let onSel = null;
+let backHash = '#/gallery';
 let curPage = '';
-let savedScroll = null;         // {hash, y}: where the page we left for an art was scrolled
-
-// ---------- helpers ----------
+let savedScroll = null;   // {hash, y} of the page left for an art
 
 const t = k => T[k] ?? TF[k] ?? k;
 const P = (k, n) => {
@@ -52,8 +51,7 @@ const area = a => (hasSize(a) ? a.size[0] * a.size[1] : 0);
 const ti = a => esc(a.name || t('na'));
 const pad = n => String(n).padStart(2, '0');
 
-// Dates in arts.json: "dd.mm.yy" or "mm.yy" (no day). Anything else = no date.
-// Inside the site they are kept as "YYYY-MM-DD" / "YYYY-MM".
+// arts.json dates: "dd.mm.yy" or "mm.yy", anything else = no date; kept as "YYYY-MM-DD" / "YYYY-MM"
 const normDate = v => {
   const m = String(v ?? '').trim().match(/^(?:(\d{1,2})\.)?(\d{1,2})\.(\d{2})$/);
   if (!m) return '';
@@ -62,7 +60,6 @@ const normDate = v => {
   return `${y}-${pad(mo)}` + (d ? `-${pad(d)}` : '');
 };
 
-// The date filter works with months: a month is the number year * 12 + month - 1.
 const monthOf = s => +s.slice(0, 4) * 12 + +s.slice(5, 7) - 1;
 const monthStr = n => `${pad(n % 12 + 1)}.${pad(Math.floor(n / 12) % 100)}`;
 const monthUrl = n => monthStr(n).replace('.', '-');
@@ -72,7 +69,6 @@ const monthParse = v => {
   return (m[2].length === 2 ? 2000 + +m[2] : +m[2]) * 12 + +m[1] - 1;
 };
 
-// A date is shown as "dd.mm.yy" or "mm.yy" in every language.
 const fd = s => (s.length === 7
   ? `${s.slice(5, 7)}.${s.slice(2, 4)}`
   : `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(2, 4)}`);
@@ -80,18 +76,17 @@ const enc = encodeURIComponent;
 const qs = o => '#/gallery?' + Object.entries(o).map(([k, v]) => `${k}=${enc(v)}`).join('&');
 const sz = a => (hasSize(a) ? `${a.size[0]} × ${a.size[1]}` : t('na'));
 const szFull = a => (hasSize(a) ? `${sz(a)} (${P('maps', area(a))})` : t('na'));
-const perRow = () => (innerWidth <= 700 ? 2 : Math.max(1, Math.floor((($('#app').clientWidth - 32) + 16) / 196)));
+const perRow = () => (innerWidth <= 700 ? 2 : Math.max(1, Math.floor(((app.clientWidth - 32) + 16) / 196)));
 
-// Search priority: name (1), author (2), tag in any language (3); 0 = no match.
-const tagNames = g => [g, ...Object.values(LOC).map(l => l['tag.' + g])].filter(Boolean).map(x => x.toLowerCase());
+const TAGN = {};
+const tagNames = g => (TAGN[g] ||= [g, ...Object.values(LOC).map(l => l['tag.' + g])].filter(Boolean).map(x => x.toLowerCase()));
 const rank = (a, q) => (
-  a.name.toLowerCase().includes(q) ? 1 :
-  a.authors.some(n => n.toLowerCase().includes(q)) ? 2 :
+  a.nameL.includes(q) ? 1 :
+  a.authorsL.some(n => n.includes(q)) ? 2 :
   a.tags.some(g => tagNames(g).some(n => n.includes(q))) ? 3 : 0
 );
 
-// Arts without a date / size always go last, whichever way you sort.
-// Dates are "YYYY-MM-DD" or "YYYY-MM": inside one month the arts with a known day go first.
+// a missing date/size goes last; within a month a known day goes first
 const byDate = d => (a, b) => {
   if (!a.date || !b.date) return !a.date - !b.date;
   const m = a.date.slice(0, 7).localeCompare(b.date.slice(0, 7));
@@ -99,7 +94,6 @@ const byDate = d => (a, b) => {
   if (a.date.length !== b.date.length) return b.date.length - a.date.length;
   return d * a.date.localeCompare(b.date);
 };
-// Size: by area, then by width; arts of exactly the same size go by date (newest first).
 const bySize = d => (a, b) => {
   if (!hasSize(a) || !hasSize(b)) return !hasSize(a) - !hasSize(b);
   return d * (area(a) - area(b)) || d * (a.size[0] - b.size[0]) || byDate(-1)(a, b);
@@ -120,7 +114,6 @@ const card = a => `
   </a>`;
 const grid = list => `<div class="grid">${list.map(card).join('')}</div>`;
 
-// "" and "-" mean "no data".
 const clean = v => {
   const s = String(v ?? '').trim();
   return s === '-' ? '' : s;
@@ -131,8 +124,7 @@ const parseSize = v => {
   return n[0] > 0 && n[1] > 0 ? [n[0], n[1]] : null;
 };
 
-// arts.json: groups named "1x1", "2x2"... give the size to every art inside;
-// any other group ("other") needs an explicit "size" for each art.
+// groups "1x1", "2x2"... set the size of their arts; other groups need "size" per art
 function parseArts(raw) {
   const out = [];
   Object.entries(raw).forEach(([key, arts]) => {
@@ -140,11 +132,15 @@ function parseArts(raw) {
     (arts || []).forEach(a => {
       const image = clean(a && a.image);
       if (!image) return;
+      const name = clean(a.name);
+      const authors = list(a.authors);
       out.push({
         id: image.replace(/\.[^.]+$/, ''),
         image,
-        name: clean(a.name),
-        authors: list(a.authors),
+        name,
+        authors,
+        nameL: name.toLowerCase(),
+        authorsL: authors.map(n => n.toLowerCase()),
         size: parseSize(a.size) || def,
         date: normDate(a.date),
         tags: list(a.tags)
@@ -154,23 +150,23 @@ function parseArts(raw) {
   return out;
 }
 
+function copy(text, done) {
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => prompt('', text));
+  else prompt('', text);
+}
+
 function copyLink(btn, url, label, done) {
-  const ok = () => {
+  copy(url, () => {
     btn.textContent = t(done);
     setTimeout(() => { btn.textContent = t(label); }, 1500);
-  };
-  if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, () => prompt('', url));
-  else prompt('', url);
+  });
 }
 
 function copyValue(btn) {
-  const text = btn.dataset.copy;
-  const ok = () => {
+  copy(btn.dataset.copy, () => {
     btn.innerHTML = ICON.check;
     setTimeout(() => { btn.innerHTML = ICON.copy; }, 1500);
-  };
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, () => prompt('', text));
-  else prompt('', text);
+  });
 }
 
 async function j(u) {
@@ -178,8 +174,6 @@ async function j(u) {
   if (!r.ok) throw 0;
   return r.json();
 }
-
-// ---------- settings: language, theme, nsfw ----------
 
 function setLang(l) {
   S.lang = l;
@@ -227,9 +221,6 @@ function gate(title, text, buttons) {
   m.classList.add('on');
 }
 
-// ---------- routing ----------
-
-// Art page: where it was opened from (home or gallery with its filters) and the scroll position there.
 function route() {
   clearTimeout(searchTimer);
   $('#gate').classList.remove('on');
@@ -261,42 +252,30 @@ function route() {
   curPage = next;
 }
 
-// ---------- home ----------
-
 function home() {
-  const A = D;
-  cols = perRow();
+  homeCols = perRow();
+  homeAuthCols = authCols();
+  const top = authorRows(D).sort(authorOrder('arts')).slice(0, AUTHORS_SHOWN[homeAuthCols]);
 
-  acols = authCols();
-  const top = authorRows(A).sort(authorOrder('arts')).slice(0, AUTHORS_SHOWN[acols]);
+  const head = (title, more) => `
+    <div class="sh">
+      <h2>${t(title)}</h2>
+      <a class="btn" href="${more}">${t('home.more')} →</a>
+    </div>`;
+  const block = (title, arts, more) => `<section>${head(title, more)}${grid(arts.slice(0, homeCols))}</section>`;
 
-  const block = (title, list, more) => `
+  app.innerHTML = `
+    ${block('home.new', [...D].sort(SORTS.new), '#/gallery')}
+    ${block('home.big', [...D].sort(SORTS.big), '#/gallery?s=big')}
     <section>
-      <div class="sh">
-        <h2>${t(title)}</h2>
-        <a class="btn" href="${more}">${t('home.more')} →</a>
-      </div>
-      ${grid([...list].slice(0, cols))}
-    </section>`;
-
-  $('#app').innerHTML = `
-    ${block('home.new', [...A].sort(SORTS.new), '#/gallery')}
-    ${block('home.big', [...A].sort(SORTS.big), '#/gallery?s=big')}
-    <section>
-      <div class="sh">
-        <h2>${t('home.authors')}</h2>
-        <a class="btn" href="#/authors">${t('home.more')} →</a>
-      </div>
-      <ol class="top" style="--cols:${acols}">
+      ${head('home.authors', '#/authors')}
+      <ol class="top" style="--cols:${homeAuthCols}">
         ${top.map(r => `
           <li><a href="${qs({q: r.name})}">${esc(r.name)}</a><span class="mu">${P('arts', r.arts)}</span></li>`).join('')}
       </ol>
     </section>`;
 }
 
-// ---------- authors ----------
-
-// An author: how many arts he is credited in and how many separate maps (width x height) those arts have.
 const authorRows = A => {
   const m = {};
   A.forEach(a => a.authors.forEach(n => {
@@ -307,16 +286,14 @@ const authorRows = A => {
   return Object.values(m);
 };
 
-// Order by one number, the biggest first; on a tie the other number decides (again the biggest first).
 const authorOrder = k => {
   const o = k === 'arts' ? 'maps' : 'arts';
   return (x, y) => y[k] - x[k] || y[o] - x[o] || x.name.localeCompare(y.name);
 };
 
-// Top authors on the home page: tiles are at least 260px wide, 3 columns at most.
-// 3 columns = 9 tiles, 2 columns = 8 tiles, 1 column = 9 tiles.
+// top authors: tiles are at least 260px wide, at most 3 columns
 const AUTHORS_SHOWN = {1: 9, 2: 8, 3: 9};
-const authCols = () => Math.max(1, Math.min(3, Math.floor((($('#app').clientWidth - 32) + 8) / 268)));
+const authCols = () => Math.max(1, Math.min(3, Math.floor(((app.clientWidth - 32) + 8) / 268)));
 
 const AS = {key: 'arts', dir: 'desc'};
 
@@ -324,15 +301,13 @@ function authorsPage() {
   const rows = authorRows(D);
   const k = AS.key;
 
-  // the place is always counted from the biggest number; equal numbers share a place
   const best = [...rows].sort(authorOrder(k));
   const place = new Map();
   best.forEach((r, i) => {
     const prev = best[i - 1];
     place.set(r, prev && prev.arts === r.arts && prev.maps === r.maps ? place.get(prev) : i + 1);
   });
-  // ascending is the same list turned over, so the places always run in order
-  const list = AS.dir === 'desc' ? best : [...best].reverse();
+  const ordered = AS.dir === 'desc' ? best : [...best].reverse();
 
   const th = (key, label) => {
     const on = AS.key === key;
@@ -342,14 +317,14 @@ function authorsPage() {
       </th>`;
   };
 
-  $('#app').innerHTML = `
+  app.innerHTML = `
     <h1>${t('nav.authors')}</h1>
     <table class="atable">
       <thead>
         <tr><th>${t('au.place')}</th><th>${t('au.name')}</th>${th('arts', t('au.arts'))}${th('maps', t('au.maps'))}</tr>
       </thead>
       <tbody>
-        ${list.map(r => `
+        ${ordered.map(r => `
           <tr data-href="${esc(qs({q: r.name}))}">
             <td class="mu">${place.get(r)}</td>
             <td class="nick"><a href="${qs({q: r.name})}">${esc(r.name)}</a></td>
@@ -377,13 +352,10 @@ function authorsPage() {
   });
 }
 
-// ---------- art page + fullscreen viewer (click to zoom) ----------
-
 const hashOf = u => new URL(u).hash || '#/';
 
-// Every history entry remembers how many steps it is away from the page where the visit began
-// (0 = that page), which page it was opened from (from) and which page was open right before it
-// (prev), so "Back" and the way back from an art page stay correct after a reload.
+// each history entry stores its depth, the page it was opened from and the one before it,
+// so "Back" stays correct after a reload
 function stampDepth(first, old) {
   const s = history.state;
   if (s && typeof s.d === 'number') {
@@ -400,15 +372,14 @@ const goBack = () => {
   else location.hash = '#/';
 };
 
-// "←" and Esc on an art page. If the page we came from is right behind us in history, step back to it:
-// a new entry would make the browser's Back return to the art.
+// step back if the source page is the previous entry, else Back would return to the art
 const leaveArt = () => {
   if (history.state && history.state.prev === backHash) history.back();
   else location.hash = backHash;
 };
 
 function notFound(key) {
-  $('#app').innerHTML = `
+  app.innerHTML = `
     <div class="nf">
       <h1>${t(key)}</h1>
       <button id="nf-back">${t(depth > 0 ? 'go.back' : 'go.home')}</button>
@@ -426,7 +397,7 @@ function artPage(id) {
   const cbtn = v => (v
     ? `<button class="cbtn" data-copy="${esc(v)}" title="${esc(t('art.copyval'))}" aria-label="${esc(t('art.copyval'))}">${ICON.copy}</button>`
     : '');
-  $('#app').innerHTML = `
+  app.innerHTML = `
     <a class="mu" href="${esc(backHash)}">← ${t(backHash.startsWith('#/gallery') ? 'nav.gallery' : 'nav.home')}</a>
     <div class="art">
       <div class="shot${hidden ? ' blur' : ''}">${img(a)}${hidden ? `<button class="reveal" id="reveal"><span>${t('nsfw.reveal')}</span></button>` : ''}</div>
@@ -449,24 +420,23 @@ function artPage(id) {
       </div>
     </div>`;
   $('#app > a.mu').onclick = e => {
-    if (e.ctrlKey || e.metaKey || e.shiftKey) return;   // "open in a new tab" keeps working
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault();
     leaveArt();
   };
-  $('.shot img').onclick = e => viewer(e.target.src);
-  $('.shot img').addEventListener('load', fitArt);
+  const im = $('.shot img');
+  im.onclick = () => viewer(im.src);
+  im.addEventListener('load', fitArt);
   fitArt();
   $$('.cbtn').forEach(b => { b.onclick = () => copyValue(b); });
-  $('#copy-art').onclick = () => copyLink(
-    $('#copy-art'), location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
-  // there is no file to download while the "no image" picture is shown
-  $('#dl').onclick = e => { if ($('.shot img').src.endsWith(NOIMG)) e.preventDefault(); };
-  if (hidden) $('#reveal').onclick = () => { revealed = a.id; route(); };
+  const copyBtn = $('#copy-art');
+  copyBtn.onclick = () => copyLink(
+    copyBtn, location.origin + location.pathname + '#/art/' + enc(a.id), 'art.copy', 'art.copied');
+  $('#dl').onclick = e => { if (im.src.endsWith(NOIMG)) e.preventDefault(); };  if (hidden) $('#reveal').onclick = () => { revealed = a.id; route(); };
 }
 
-// Desktop art page: the art is as big as fits in the window above the footer (the footer is reached by scrolling),
-// at a whole number of device pixels per art pixel (smoothly downscaled when even 1x does not fit).
-// The info goes beside it, or below if there is no room.
+// Desktop: the art is as big as fits above the footer, in whole device pixels per art pixel
+// (smooth when even 1x does not fit). The info goes beside it, or below if there is no room.
 function fitArt() {
   const art = $('.art');
   const im = $('.shot img');
@@ -479,18 +449,16 @@ function fitArt() {
   const MIN_H = 320;
   const BORDER = 2;
   const dpr = devicePixelRatio || 1;
+  const cs = getComputedStyle(app);
   const probe = document.createElement('div');
   probe.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll';
   document.body.append(probe);
   const scrollbar = probe.offsetWidth - probe.clientWidth;
   probe.remove();
 
-  const main = $('#app');
-  const w = Math.min(parseFloat(getComputedStyle(main).maxWidth) || Infinity, innerWidth - scrollbar)
-    - parseFloat(getComputedStyle(main).paddingLeft) * 2 - BORDER;
+  const w = Math.min(parseFloat(cs.maxWidth) || Infinity, innerWidth - scrollbar) - parseFloat(cs.paddingLeft) * 2 - BORDER;
   const top = $('.shot').getBoundingClientRect().top + scrollY;
-  const bottom = parseFloat(getComputedStyle(main).paddingBottom) + 1;
-  const h = Math.max(MIN_H, document.documentElement.clientHeight - top - bottom) - BORDER;
+  const h = Math.max(MIN_H, document.documentElement.clientHeight - top - parseFloat(cs.paddingBottom) - 1) - BORDER;
 
   const fit = Math.min(w / im.naturalWidth, h / im.naturalHeight);
   const steps = Math.floor(fit * dpr);
@@ -521,8 +489,7 @@ function viewer(src) {
     im.style.height = im.naturalHeight * s + 'px';
     im.style.cursor = lvl === LEVELS.length - 1 ? 'zoom-out' : 'zoom-in';
   };
-  // the viewer takes one history step, so the browser's Back arrow closes it first;
-  // its entry keeps the art's depth and "from" (a reload must not lose them) and has the art right behind it
+  // the viewer is a history step, so Back closes it; the entry keeps the art's depth and "from"
   history.pushState({...history.state, prev: hashOf(location.href), viewer: true}, '', location.href);
   let pushed = true;
   const key = e => { if (e.key === 'Escape') close(); };
@@ -559,8 +526,6 @@ function viewer(src) {
   v.classList.add('on');
 }
 
-// ---------- gallery ----------
-
 function range(label, [min, max], [lo, hi], cb, isMonth) {
   const ts = isMonth ? monthStr : x => x;
   const fs = isMonth ? monthParse : Number;
@@ -596,8 +561,7 @@ function range(label, [min, max], [lo, hi], cb, isMonth) {
   n1.onchange = () => set(Math.min(fs(n1.value), hi), hi);
   n2.onchange = () => set(lo, Math.max(fs(n2.value), lo));
 
-  // The bar is dragged with the pointer: the nearest thumb follows it. When both thumbs
-  // stand at one spot, the direction of the first move decides which of them goes.
+  // the nearest thumb follows the pointer; thumbs at one spot: the first move's direction picks one
   const bar = $('.rng', row);
   const valueAt = e => {
     const r = bar.getBoundingClientRect();
@@ -638,31 +602,32 @@ function dropdown(label, rows, text) {
 }
 
 function galleryPage(p) {
-  const A = D;
-  const months = A.filter(a => a.date).map(a => monthOf(a.date));
-  const sized = A.filter(hasSize);
+  const months = D.filter(a => a.date).map(a => monthOf(a.date));
+  const sized = D.filter(hasSize);
   const B = {
     d: months.length ? [Math.min(...months), Math.max(...months)] : [0, 1],
     w: [1, Math.max(1, ...sized.map(a => a.size[0]))],
     h: [1, Math.max(1, ...sized.map(a => a.size[1]))]
   };
   const cnt = {};
-  A.forEach(a => a.tags.forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
-  // the most used tags first (over the whole archive, so the order never jumps while filtering), "nsfw" always at the bottom
+  D.forEach(a => a.tags.forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
   const tags = Object.keys(cnt).sort((x, y) =>
     (x === 'nsfw') - (y === 'nsfw') || cnt[y] - cnt[x] || tg(x).localeCompare(tg(y), S.lang));
 
-  // d=mm-yy-mm-yy, w=a-b, h=a-b; a value that does not fit leaves that end of the range at its full value
+  // d=mm-yy-mm-yy, w=a-b, h=a-b; bad or out-of-range values fall back to the limits
   const rg = k => {
+    const [min, max] = B[k];
     const v = (p.get(k) || '').split('-');
     const r = k === 'd'
       ? (v.length === 4 ? [monthParse(v[0] + '.' + v[1]), monthParse(v[2] + '.' + v[3])] : [])
       : (v.length === 2 ? v.map(x => (x === '' ? NaN : Number(x))) : []);
-    return [0, 1].map(i => (isNaN(r[i]) ? B[k][i] : r[i]));
+    const [lo, hi] = [0, 1].map(i => Math.min(max, Math.max(min, isNaN(r[i]) ? B[k][i] : r[i])));
+    return lo > hi ? [min, max] : [lo, hi];
   };
+  const sortKey = p.get('s');
   F = {
     q: p.get('q') || '',
-    s: p.get('s') || 'new',
+    s: Object.hasOwn(SORTS, sortKey) ? sortKey : 'new',
     tags: (p.get('tag') || '').split(',').filter(Boolean),
     d: rg('d'),
     w: rg('w'),
@@ -672,7 +637,7 @@ function galleryPage(p) {
   if (p.has('sel')) SEL = new Set((p.get('sel') || '').split(',').filter(Boolean));
   const same = k => F[k][0] === B[k][0] && F[k][1] === B[k][1];
 
-  $('#app').innerHTML = `
+  app.innerHTML = `
     <h1>${t('nav.gallery')}</h1>
     <div class="bar">
       <input id="q" type="search" placeholder="${esc(t('gal.search'))}" value="${esc(F.q)}">
@@ -711,12 +676,12 @@ function galleryPage(p) {
     [range(t('f.w'), B.w, F.w, change('w', 'size')), range(t('f.h'), B.h, F.h, change('h', 'size'))],
     () => (same('w') && same('h') ? t('any.m') : `${F.w[0]} × ${F.h[0]} – ${F.w[1]} × ${F.h[1]}`));
 
-  const list = document.createElement('div');
-  list.className = 'taglist';
-  list.innerHTML = tags.map(g => `<button class="chip" data-g="${esc(g)}">${esc(tg(g))}</button>`).join('');
-  R.tag = dropdown(t('f.tag'), [list],
+  const tagList = document.createElement('div');
+  tagList.className = 'taglist';
+  tagList.innerHTML = tags.map(g => `<button class="chip" data-g="${esc(g)}">${esc(tg(g))}</button>`).join('');
+  R.tag = dropdown(t('f.tag'), [tagList],
     () => (F.tags.length ? F.tags.map(tg).join(', ') : t('any.m')));
-  $$('.chip', list).forEach(c => {
+  $$('.chip', tagList).forEach(c => {
     c.onclick = () => {
       const g = c.dataset.g;
       F.tags = F.tags.includes(g) ? F.tags.filter(x => x !== g) : [...F.tags, g];
@@ -739,7 +704,7 @@ function galleryPage(p) {
   $('#fr').append(R.date.el, R.size.el, R.tag.el, mode, reset);
   $('.bar').append(R.sort.el);
 
-  // The address is written by hand: lists are joined with "," and ranges with "-", both stay unescaped.
+  // built by hand to keep "," and "-" unescaped
   function syncUrl() {
     const o = [];
     if (F.q) o.push('q=' + enc(F.q));
@@ -757,19 +722,19 @@ function galleryPage(p) {
     syncUrl();
     const q = F.q.trim().toLowerCase();
     const inR = (v, r) => v >= r[0] && v <= r[1];
-    const fit = A.map(a => ({a, k: q ? rank(a, q) : 0}))
+    const base = D.map(a => ({a, k: q ? rank(a, q) : 0}))
       .filter(({a, k}) =>
         (!q || k) &&
         (F.s !== 'sel' || SEL.has(a.id)) &&
         (a.date ? inR(monthOf(a.date), F.d) : same('d')) &&
         (hasSize(a) ? inR(a.size[0], F.w) && inR(a.size[1], F.h) : same('w') && same('h')));
-    const r = fit
+    const r = base
       .filter(({a}) => !F.tags.length || F.tags.some(g => a.tags.includes(g)))
-      .sort((x, y) => x.k - y.k || (SORTS[F.s] || SORTS.new)(x.a, y.a))
+      .sort((x, y) => x.k - y.k || SORTS[F.s](x.a, y.a))
       .map(x => x.a);
-    // a tag shows how many arts it would give with everything else as it is now
+    // per-tag counts under every filter except the tag filter
     const n = {};
-    fit.forEach(({a}) => a.tags.forEach(g => { n[g] = (n[g] || 0) + 1; }));
+    base.forEach(({a}) => a.tags.forEach(g => { n[g] = (n[g] || 0) + 1; }));
 
     const nAuthors = new Set(r.flatMap(a => a.authors)).size;
     $('#cnt').textContent = nAuthors
@@ -814,8 +779,6 @@ function galleryPage(p) {
   upd();
 }
 
-// ---------- events ----------
-
 function toggleSel(c) {
   const id = c.dataset.id;
   if (SEL.has(id)) SEL.delete(id);
@@ -824,12 +787,11 @@ function toggleSel(c) {
   if (onSel) onSel();
 }
 
-// Touch screens: 1st tap = short info, 2nd tap = open the art.
-// Scrolling or tapping elsewhere closes the info.
+// touch: the 1st tap shows the info, the 2nd opens the art
 const touch = matchMedia('(hover:none)');
 const closeCards = () => $$('.card.open').forEach(c => c.classList.remove('open'));
 
-$('#app').addEventListener('click', e => {
+app.addEventListener('click', e => {
   const c = e.target.closest('.card');
   if (!c) return;
   if (selectMode) {
@@ -849,36 +811,23 @@ document.addEventListener('click', e => {
 });
 
 addEventListener('scroll', closeCards, {passive: true});
-if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // the site restores the scroll itself
-addEventListener('hashchange', e => {
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';addEventListener('hashchange', e => {
   stampDepth(false, e.oldURL);
   route();
 });
-// Esc closes the first of: the viewer (it has its own handler), the nsfw window (same as "Cancel"), open dropdowns.
-// With none of them open: art -> back to where it was opened, any other page -> home.
 addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if ($('#view').classList.contains('on')) return;
-  if ($('#gate').classList.contains('on')) {
-    $('#gate').classList.remove('on');
-    return;
-  }
+  if (e.key !== 'Escape' || $('#view').classList.contains('on')) return;
+  const gate = $('#gate');
   const open = $$('.dd[open]');
-  if (open.length) {
-    open.forEach(d => d.removeAttribute('open'));
-    return;
-  }
-  const page = (location.hash.slice(1).split('?')[0] || '/').split('/').filter(Boolean)[0];
-  if (page === 'art') leaveArt();
-  else if (page) location.hash = '#/';
+  if (gate.classList.contains('on')) gate.classList.remove('on');
+  else if (open.length) open.forEach(d => d.removeAttribute('open'));
+  else if (curPage === 'art') leaveArt();
+  else if (curPage !== 'home') location.hash = '#/';
 });
 addEventListener('resize', () => {
   if (curPage === 'art') fitArt();
-  const p = location.hash.slice(1).split('?')[0];
-  if ((p === '' || p === '/') && (perRow() !== cols || authCols() !== acols)) route();
+  else if (curPage === 'home' && (perRow() !== homeCols || authCols() !== homeAuthCols)) route();
 });
-
-// ---------- start ----------
 
 (async () => {
   D = parseArts(await j('data/arts.json'));
@@ -904,14 +853,12 @@ addEventListener('resize', () => {
     $('#burger').setAttribute('aria-expanded', open);
   };
 
-  // language: the saved choice, otherwise the browser's preferred languages, otherwise English
   const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])
     .map(x => x.slice(0, 2).toLowerCase())
     .map(x => (['uk', 'be', 'kk'].includes(x) ? 'ru' : x));
   let l = LS.get('lang');
   if (!LOC[l]) l = prefs.find(x => LOC[x]) || (LOC.en ? 'en' : codesFound[0]);
 
-  // theme: the saved choice, otherwise the system one (and it follows the system until a choice is saved)
   setTheme(LS.get('theme') || systemTheme());
   $('#theme').onclick = () => {
     const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
