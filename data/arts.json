@@ -327,7 +327,7 @@
       "name": "burn",
       "authors": ["gazon"],
       "date": "03.25",
-      "tags": ["ads"]
+      "tags": []
     },
     {
       "image": "0048.png",
@@ -1784,6 +1784,13 @@
       "authors": ["Anton_3827"],
       "date": "28.10.26",
       "tags": ["memes"]
+    },
+	{
+      "image": "0256.png",
+      "name": "Lime square",
+      "authors": ["_n0nam3_"],
+      "date": "31.10.26",
+      "tags": ["color"]
     }
   ],
 
@@ -2290,6 +2297,14 @@
       "authors": ["Endertrack"],
       "size": [3, 6],
       "date": "08.25",
+      "tags": ["people"]
+    },
+    {
+      "image": "b064.png",
+      "name": "Deadpool",
+      "authors": ["_n0nam3_"],
+      "size": [2, 2],
+      "date": "01.11.26",
       "tags": ["people"]
     }
   ]
