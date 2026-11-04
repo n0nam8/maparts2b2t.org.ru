@@ -2306,6 +2306,22 @@
       "size": [2, 2],
       "date": "01.11.26",
       "tags": ["people"]
+    },
+    {
+      "image": "b065.png",
+      "name": "",
+      "authors": ["EsdeD12"],
+      "size": [3, 4],
+      "date": "02.11.26",
+      "tags": ["anime"]
+    },
+    {
+      "image": "b066.png",
+      "name": "",
+      "authors": ["Endertrack", "Anton_3827"],
+      "size": [5, 6],
+      "date": "01.11.26",
+      "tags": []
     }
   ]
 }

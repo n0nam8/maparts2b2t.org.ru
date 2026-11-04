@@ -98,7 +98,22 @@ const bySize = d => (a, b) => {
   if (!hasSize(a) || !hasSize(b)) return !hasSize(a) - !hasSize(b);
   return d * (area(a) - area(b)) || d * (a.size[0] - b.size[0]) || byDate(-1)(a, b);
 };
-const SORTS = {new: byDate(-1), old: byDate(1), big: bySize(-1), small: bySize(1), sel: byDate(-1)};
+// "id" has no button (s=id): newest ids first, so "b…" (big) come before "0…"
+const SORTS = {
+  new: byDate(-1),
+  old: byDate(1),
+  big: bySize(-1),
+  small: bySize(1),
+  id: (a, b) => b.id.localeCompare(a.id, 'en', {numeric: true})
+};
+
+// n=n,a,d,t has no button: arts with no name / author / date / tags (any of them)
+const MISSING = {
+  n: a => !a.name,
+  a: a => !a.authors.length,
+  d: a => !a.date,
+  t: a => !a.tags.length
+};
 
 const img = a => `<img loading="lazy" src="${IMG}${encodeURIComponent(a.image)}" alt="${ti(a)}"
   onerror="this.onerror=null;this.src='${NOIMG}'">`;
@@ -411,7 +426,7 @@ function artPage(id) {
           <dt>${t('art.date')}</dt>
           <dd class="cp"><span>${a.date ? fd(a.date) : t('na')}</span>${cbtn(a.date ? fd(a.date) : '')}</dd>
           ${a.tags.length ? `<dt>${t('art.tags')}</dt>
-          <dd>${a.tags.map(g => `<a class="chip" href="${qs({tag: g})}">${esc(tg(g))}</a>`).join(' ')}</dd>` : ''}
+          <dd>${a.tags.map(g => `<a class="chip" href="${qs({t: g})}">${esc(tg(g))}</a>`).join(' ')}</dd>` : ''}
         </dl>
         <div class="acts">
           <button id="copy-art">${t('art.copy')}</button>
@@ -628,7 +643,9 @@ function galleryPage(p) {
   F = {
     q: p.get('q') || '',
     s: Object.hasOwn(SORTS, sortKey) ? sortKey : 'new',
-    tags: (p.get('tag') || '').split(',').filter(Boolean),
+    tags: (p.get('t') || '').split(',').filter(Boolean),
+    n: [...new Set((p.get('n') || '').split(','))].filter(k => Object.hasOwn(MISSING, k)),
+    o: p.get('o') === '1',
     d: rg('d'),
     w: rg('w'),
     h: rg('h')
@@ -645,6 +662,7 @@ function galleryPage(p) {
     <div class="frow" id="fr"></div>
     <div class="selbar" id="selbar" hidden>
       <span id="selcnt"></span>
+      <button id="only">${t('sel.only')}</button>
       <button id="copy">${t('sel.copy')}</button>
       <button id="clr">${t('sel.clear')}</button>
     </div>
@@ -655,7 +673,7 @@ function galleryPage(p) {
 
   const sortList = document.createElement('div');
   sortList.className = 'taglist';
-  sortList.innerHTML = Object.keys(SORTS)
+  sortList.innerHTML = Object.keys(SORTS).filter(k => k !== 'id')
     .map(k => `<button class="chip" data-s="${k}">${t('sort.' + k)}</button>`).join('');
   R.sort = dropdown(t('f.sort'), [sortList], () => t('sort.' + F.s));
   $$('.chip', sortList).forEach(c => {
@@ -709,11 +727,13 @@ function galleryPage(p) {
     const o = [];
     if (F.q) o.push('q=' + enc(F.q));
     if (F.s !== 'new') o.push('s=' + F.s);
-    if (F.tags.length) o.push('tag=' + F.tags.map(enc).join(','));
+    if (F.tags.length) o.push('t=' + F.tags.map(enc).join(','));
+    if (F.n.length) o.push('n=' + F.n.join(','));
     ['d', 'w', 'h'].forEach(k => {
       if (!same(k)) o.push(`${k}=${F[k].map(k === 'd' ? monthUrl : String).join('-')}`);
     });
     if (SEL.size) o.push('sel=' + [...SEL].map(enc).join(','));
+    if (F.o) o.push('o=1');
     history.replaceState(history.state, '', '#/gallery' + (o.length ? '?' + o.join('&') : ''));
     backHash = location.hash;
   }
@@ -725,7 +745,8 @@ function galleryPage(p) {
     const base = D.map(a => ({a, k: q ? rank(a, q) : 0}))
       .filter(({a, k}) =>
         (!q || k) &&
-        (F.s !== 'sel' || SEL.has(a.id)) &&
+        (!F.o || SEL.has(a.id)) &&
+        (!F.n.length || F.n.some(k => MISSING[k](a))) &&
         (a.date ? inR(monthOf(a.date), F.d) : same('d')) &&
         (hasSize(a) ? inR(a.size[0], F.w) && inR(a.size[1], F.h) : same('w') && same('h')));
     const r = base
@@ -749,7 +770,8 @@ function galleryPage(p) {
   }
 
   function updSel() {
-    $('#selbar').hidden = !(selectMode || SEL.size);
+    $('#selbar').hidden = !(selectMode || SEL.size || F.o);
+    $('#only').classList.toggle('on', F.o);
     $('#selcnt').textContent = t('sel.count').replace('{n}', SEL.size);
     $('#copy').disabled = !SEL.size;
     $('#gr').classList.toggle('selecting', selectMode);
@@ -757,8 +779,13 @@ function galleryPage(p) {
 
   $('#copy').onclick = () => copyLink(
     $('#copy'),
-    location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join(',') + '&s=sel',
+    location.origin + location.pathname + '#/gallery?sel=' + [...SEL].map(enc).join(',') + '&o=1',
     'sel.copy', 'sel.copied');
+  $('#only').onclick = () => {
+    F.o = !F.o;
+    updSel();
+    upd();
+  };
   $('#clr').onclick = () => {
     SEL.clear();
     updSel();
@@ -766,7 +793,7 @@ function galleryPage(p) {
   };
   onSel = () => {
     updSel();
-    if (F.s === 'sel') upd();
+    if (F.o) upd();
     else syncUrl();
   };
   updSel();
