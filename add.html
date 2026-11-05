@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Добавление артов</title>
+<style>
+:root {
+  --bg: #12151c;
+  --sf: #1a1e28;
+  --bd: #2c3240;
+  --tx: #e9ebf0;
+  --mu: #9aa2b2;
+  --ac: #85a63e;
+  --on: #14180a;
+  --red: #c00;
+  --warn: #e0a030;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--tx);
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 { margin: 0; font-size: 24px; }
+a { color: inherit; text-decoration: none; }
+[hidden] { display: none !important; }
+.mu { color: var(--mu); }
+.grow { flex: 1; }
+
+button, .btn, input, textarea {
+  padding: 6px 10px;
+  font: inherit;
+  color: inherit;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 0;
+}
+
+input[type=text], input[type=search], input[type=number] { background: var(--bg); }
+input:focus, button:focus-visible { outline: 1px solid var(--ac); outline-offset: 0; }
+button, .btn { cursor: pointer; }
+button:hover, .btn:hover { border-color: var(--ac); }
+button:disabled { opacity: .5; cursor: default; border-color: var(--bd); }
+button.primary { background: var(--ac); border-color: var(--ac); color: var(--on); font-weight: 600; }
+button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+
+.head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+
+.card { margin: 0 0 16px; padding: 14px; background: var(--sf); border: 1px solid var(--bd); }
+.card > summary { cursor: pointer; font-weight: 600; }
+.card[open] > summary { margin-bottom: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.row + .row { margin-top: 8px; }
+
+.zone { text-align: center; border-style: dashed; padding: 24px 14px; }
+.zone p { margin: 0 0 8px; }
+
+.overlay {
+  position: fixed; inset: 0; z-index: 100; display: none; place-items: center;
+  background: #000b; font-size: 22px; pointer-events: none;
+}
+.overlay.on { display: grid; }
+
+.note { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--warn); background: #e0a03018; }
+.note.err { border-color: #e5534b; background: #e5534b18; }
+.note.info { border-color: var(--bd); background: none; color: var(--mu); }
+
+.art { display: grid; grid-template-columns: 168px 1fr; gap: 14px; }
+.thumb {
+  display: grid; place-items: center; width: 168px; height: 168px;
+  background: var(--bg); border: 1px solid var(--bd);
+}
+.thumb img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.titleline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.fname { font-size: 18px; font-weight: 600; }
+.old { color: var(--mu); text-decoration: line-through; }
+.badge { padding: 1px 8px; font-size: 13px; color: var(--on); background: var(--warn); }
+.size { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.size input { width: 64px; }
+
+.fields { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; align-items: start; }
+.fields > .lbl { padding-top: 7px; color: var(--mu); }
+.fields input[type=text] { width: 100%; }
+.hint { display: block; margin-top: 2px; font-size: 13px; color: var(--mu); }
+.hint.err { color: #e5534b; }
+
+.chips {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 4px; background: var(--bg); border: 1px solid var(--bd);
+}
+.chips:focus-within { border-color: var(--ac); }
+.chips input { flex: 1; min-width: 130px; padding: 3px 6px; background: none; border: 0; outline: 0; }
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; background: var(--sf); border: 1px solid var(--bd); }
+.tag button { padding: 0 6px; color: var(--mu); background: none; border: 0; }
+.tag button:hover { color: var(--tx); }
+
+.sug {
+  position: absolute; left: -1px; right: -1px; top: 100%; z-index: 30; max-height: 240px; overflow: auto;
+  background: var(--sf); border: 1px solid var(--ac); box-shadow: 0 8px 24px #0006;
+}
+.sug div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; cursor: pointer; }
+.sug div.on, .sug div:hover { background: var(--bd); }
+
+.dd { position: relative; display: inline-block; max-width: 100%; }
+.dd > button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: 200px; max-height: 300px; padding: 8px; overflow: auto;
+  background: var(--sf); border: 1px solid var(--bd); box-shadow: 0 8px 24px #0006;
+}
+.pop label { display: flex; align-items: center; gap: 8px; padding: 4px 6px; cursor: pointer; white-space: nowrap; }
+.pop label:hover { background: var(--bd); }
+.pop input { width: auto; margin: 0; }
+
+.found { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.ex { display: grid; grid-template-columns: 72px 1fr; gap: 12px; padding: 10px; background: var(--bg); border: 1px solid var(--bd); }
+.ex .thumb { width: 72px; height: 72px; }
+.ex.gone { opacity: .45; }
+.ex.gone .fields { pointer-events: none; }
+.ex.chg { border-color: var(--ac); }
+.exhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+.steps { margin: 8px 0 12px; padding-left: 20px; color: var(--mu); }
+.tablewrap { max-height: 340px; margin-top: 10px; overflow: auto; border: 1px solid var(--bd); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 4px 8px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--bd); }
+th { position: sticky; top: 0; background: var(--sf); }
+td.cut { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+
+.bar {
+  position: sticky; bottom: 0; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 0 -16px -16px; padding: 12px 16px; background: var(--sf); border-top: 1px solid var(--bd);
+}
+label.chk { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
+label.chk input { width: auto; margin: 0; }
+
+@media (max-width: 640px) {
+  .art { grid-template-columns: 1fr; }
+  .thumb { width: 100%; height: 160px; }
+  .fields { grid-template-columns: 1fr; gap: 4px; }
+  .fields > .lbl { padding-top: 6px; }
+  .bar { position: static; margin: 0; }
+}
+</style>
+</head>
+<body>
+<div class="overlay" id="drop">Отпустите файлы, чтобы добавить</div>
+
+<main>
+  <header class="head">
+    <a class="btn" href="./">← На сайт</a>
+    <h1>Добавление артов</h1>
+  </header>
+
+  <section class="card">
+    <div class="row"><b>arts.json:</b><span id="srcInfo" class="mu">загрузка…</span></div>
+    <div class="row">
+      <button id="srcPick">Загрузить свой arts.json</button>
+      <button id="srcSite" hidden>Вернуть с сайта</button>
+      <input type="file" id="srcInput" accept=".json,application/json" hidden>
+    </div>
+    <div class="note err" id="srcErr" hidden></div>
+  </section>
+
+  <section class="card zone">
+    <p>Перетащите рендеры на страницу, вставьте их из буфера (Ctrl+V) или выберите на устройстве</p>
+    <button id="pick">Выбрать файлы</button>
+    <input type="file" id="pickInput" accept="image/*" multiple hidden>
+    <div id="addMsg"></div>
+  </section>
+
+  <div id="fresh"></div>
+
+  <details class="card" id="editBox">
+    <summary>Изменить или удалить существующие арты</summary>
+    <input type="search" id="find" placeholder="Название, автор, тег, id, размер (2x1) или дата" style="width:100%">
+    <div class="mu" id="findInfo" style="margin-top:6px"></div>
+    <div class="found" id="found"></div>
+    <div class="row" style="margin-top:10px"><button id="more" hidden>Показать ещё</button></div>
+  </details>
+
+  <details class="card" id="sortBox">
+    <summary>Отсортировать всё</summary>
+    <ol class="steps">
+      <li>Малые арты (1×1) и большие сортируются отдельно.</li>
+      <li>Сначала арты с датой: от старых к новым.</li>
+      <li>Потом без даты, по количеству данных: автор, название и теги; автор и название; автор и теги; автор; название и теги; название; теги; без данных.</li>
+      <li>У больших артов при равенстве всего остального порядок решает размер (от меньшего к большему).</li>
+    </ol>
+    <label class="chk"><input type="checkbox" id="sortOn"> Отсортировать при сохранении</label>
+    <label class="chk"><input type="checkbox" id="sortRen" checked> Выдать id по порядку и переименовать файлы (иначе меняется только порядок в arts.json)</label>
+    <div id="sortInfo" class="mu"></div>
+    <div class="tablewrap" id="sortWrap" hidden><table id="sortTable"></table></div>
+  </details>
+
+  <section class="card" id="sum"></section>
+
+  <div class="bar">
+    <span class="mu" id="barInfo"></span>
+    <span class="grow"></span>
+    <button class="primary" id="dlJson">Скачать arts.json</button>
+    <button id="dlAll">Скачать все рендеры</button>
+    <button id="dlRen">Скачать только переименованные</button>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+const $ = (s, r = document) => r.querySelector(s);
+const MAP = 128;
+const PAGE = 40;
+const INFO_ORDER = ['ant', 'an', 'at', 'a', 'nt', 'n', 't', ''];
+const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
+const pad = (n, w) => String(n).padStart(w, '0');
+const lower = s => s.toLowerCase();
+const sameList = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);
+const asList = v => (Array.isArray(v) ? v : [v]).map(x => String(x ?? '').trim()).filter(x => x && x !== '-');
+
+const S = {
+  groups: [],
+  arts: [],
+  fresh: [],
+  lang: {},
+  tagList: [],
+  eol: '\r\n',
+  after: '\r\n',
+  layout: null,
+  from: 'site',
+  fileName: '',
+  sortAll: false,
+  renumber: true,
+  plan: null,
+  shown: PAGE
+};
+
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k === 'value' || k === 'checked') el[k] = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, '');
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  el.append(...kids.flat().filter(x => x != null && x !== false));
+  return el;
+}
+
+
+function parseDate(text) {
+  const t = text.trim();
+  if (!t) return {value: ''};
+  const p = t.split(/[.\-/\s]+/).filter(Boolean);
+  if (p.length < 2 || p.length > 3 || p.some(x => !/^\d+$/.test(x))) return {error: 'Формат: дд.мм.гггг или мм.гггг'};
+  const y = p[p.length - 1];
+  const m = +p[p.length - 2];
+  const d = p.length === 3 ? +p[0] : 0;
+  if (y.length !== 2 && y.length !== 4) return {error: 'Год: 2 или 4 цифры'};
+  const year = y.length === 2 ? 2000 + +y : +y;
+  if (year < 2000 || year > 2099) return {error: 'Год должен быть от 2000 до 2099'};
+  if (m < 1 || m > 12) return {error: 'Месяц должен быть от 1 до 12'};
+  if (p.length === 3 && (d < 1 || d > new Date(year, m, 0).getDate())) return {error: `В этом месяце нет ${d} числа`};
+  return {value: (p.length === 3 ? pad(d, 2) + '.' : '') + pad(m, 2) + '.' + pad(year % 100, 2)};
+}
+
+function dateKey(s) {
+  const m = /^(?:(\d{1,2})\.)?(\d{1,2})\.(\d{2})$/.exec(String(s).trim());
+  return m && +m[2] >= 1 && +m[2] <= 12 ? [+m[3], +m[2], +(m[1] || 0)] : null;
+}
+
+const cmpDate = (x, y) => x[0] - y[0] || x[1] - y[1] || (!x[2] - !y[2]) || x[2] - y[2];
+
+
+const isSmall = a => {
+  const s = sizeOf(a);
+  return !!s && s[0] === 1 && s[1] === 1;
+};
+const sizeOf = a => (a.fresh ? a.maps : a.size);
+const serOf = a => (isSmall(a) ? 'n' : 'b');
+const idStr = (ser, n) => (ser === 'n' ? pad(n, 4) : 'b' + pad(n, 3));
+
+function parseNum(id) {
+  const m = /^(b?)0*(\d+)$/i.exec(id);
+  return m && +m[2] > 0 ? {ser: m[1] ? 'b' : 'n', n: +m[2]} : null;
+}
+
+function assignNumbers(taken, wants) {
+  const max = Math.max(0, ...taken);
+  const holes = [];
+  for (let n = 1; n <= max; n++) if (!taken.has(n)) holes.push(n);
+  const m = wants.length;
+  const slots = m <= holes.length ? holes : [...holes, ...Array.from({length: m - holes.length}, (_, i) => max + 1 + i)];
+  const free = new Set(slots);
+  const res = Array(m).fill(null);
+  wants.forEach((w, i) => {
+    if (w != null && free.has(w)) {
+      res[i] = w;
+      free.delete(w);
+    }
+  });
+  const rest = [...free].sort((a, b) => a - b);
+  res.map((v, i) => (v == null ? i : -1)).filter(i => i >= 0)
+    .sort((a, b) => (wants[a] ?? Infinity) - (wants[b] ?? Infinity) || a - b)
+    .forEach((i, k) => { res[i] = rest[k]; });
+  return res;
+}
+
+
+const infoRank = a => INFO_ORDER.indexOf((a.authors.length ? 'a' : '') + (a.name.trim() ? 'n' : '') + (a.tags.length ? 't' : ''));
+const area = a => {
+  const s = sizeOf(a);
+  return s ? s[0] * s[1] : Infinity;
+};
+
+function sortCmp(big, order) {
+  return (a, b) => {
+    const da = dateKey(a.date);
+    const db = dateKey(b.date);
+    if (da && db) {
+      const c = cmpDate(da, db);
+      if (c) return c;
+    } else if (da || db) {
+      return da ? -1 : 1;
+    } else {
+      const c = infoRank(a) - infoRank(b);
+      if (c) return c;
+    }
+    if (big) {
+      const sa = sizeOf(a) || [Infinity, Infinity];
+      const sb = sizeOf(b) || [Infinity, Infinity];
+      const c = area(a) - area(b) || sa[0] - sb[0] || sa[1] - sb[1];
+      if (c) return c;
+    }
+    return order.get(a) - order.get(b);
+  };
+}
+
+
+function scanLayout(text) {
+  const n = text.length;
+  let i = 0;
+  const ws = () => { while (i < n && ' \t\r\n'.includes(text[i])) i++; };
+  const str = () => {
+    i++;
+    while (i < n && text[i] !== '"') i += text[i] === '\\' ? 2 : 1;
+    i++;
+  };
+  const value = () => {
+    if (text[i] === '"') return str();
+    if (text[i] !== '{' && text[i] !== '[') {
+      while (i < n && !',}] \t\r\n'.includes(text[i])) i++;
+      return;
+    }
+    let depth = 0;
+    do {
+      const c = text[i];
+      if (c === '"') {
+        str();
+        continue;
+      }
+      if (c === '{' || c === '[') depth++;
+      else if (c === '}' || c === ']') depth--;
+      i++;
+    } while (depth > 0 && i < n);
+  };
+
+  ws();
+  if (text[i] !== '{') throw new Error('layout');
+  i++;
+  const groups = [];
+  for (;;) {
+    const from = i;
+    ws();
+    if (text[i] === '}') break;
+    const k0 = i;
+    str();
+    const name = JSON.parse(text.slice(k0, i));
+    ws();
+    i++;
+    ws();
+    if (text[i] !== '[') throw new Error('layout');
+    const head = text.slice(from, i + 1);
+    i++;
+    const elems = [];
+    for (;;) {
+      const e0 = i;
+      ws();
+      if (text[i] === ']') break;
+      const b0 = i;
+      value();
+      const p0 = i;
+      ws();
+      elems.push({pre: text.slice(e0, b0), body: text.slice(b0, p0), post: text.slice(p0, i), last: false});
+      if (text[i] === ',') i++;
+      else break;
+    }
+    if (text[i] !== ']') throw new Error('layout');
+    i++;
+    if (elems.length) elems[elems.length - 1].last = true;
+    const t0 = i;
+    ws();
+    groups.push({name, head, elems, tail: text.slice(t0, i)});
+    if (text[i] === ',') i++;
+    else break;
+  }
+  if (text[i] !== '}') throw new Error('layout');
+  return {groups, after: text.slice(i + 1)};
+}
+
+function serialize(groups) {
+  const eol = S.eol;
+  const val = v => (Array.isArray(v) ? '[' + v.map(x => JSON.stringify(x)).join(', ') + ']' : JSON.stringify(v));
+  const body = o => '{' + eol + Object.entries(o).map(([k, v]) => `      ${JSON.stringify(k)}: ${val(v)}`).join(',' + eol) + eol + '    }';
+  const lay = new Map((S.layout ? S.layout.groups : []).map(g => [g.name, g]));
+  if (!groups.length) return '{}' + S.after;
+  const text = groups.map(g => {
+    const l = lay.get(g.name);
+    const last = l && l.elems.length ? l.elems[l.elems.length - 1].post : eol + '  ';
+    const items = g.items.map((it, i) => {
+      const post = i === g.items.length - 1 ? last : it.src && !it.src.last ? it.src.post : '';
+      return (it.src ? it.src.pre : eol + '    ') + (it.same ? it.src.body : body(it.o)) + post;
+    });
+    return (l ? l.head : eol + '  ' + JSON.stringify(g.name) + ': [') + items.join(',') + ']' + (l ? l.tail : '');
+  });
+  return '{' + text.join(',') + '}' + S.after;
+}
+
+const crcTable = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(u8) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = crcTable[(c ^ u8[i]) & 255] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(files) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const size = f.data.length;
+    const loc = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, size, 4], [22, size, 4], [26, name.length, 2], [28, 0, 2]]
+      .forEach(([o, v, n]) => (n === 4 ? loc.setUint32(o, v, true) : loc.setUint16(o, v, true)));
+    const cen = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, size, 4], [24, size, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, n]) => (n === 4 ? cen.setUint32(o, v, true) : cen.setUint16(o, v, true)));
+    parts.push(loc.buffer, name, f.data);
+    central.push(cen.buffer, name);
+    offset += 30 + name.length + size;
+  }
+  const cdSize = central.reduce((s, p) => s + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end.buffer], {type: 'application/zip'});
+}
+
+function save(blob, name) {
+  const a = h('a', {href: URL.createObjectURL(blob), download: name});
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+
+function makeArt(group, raw, src) {
+  const image = String(raw.image ?? '');
+  const m = /^(.*?)(?:\.([^.]*))?$/.exec(image);
+  const gs = /^(\d+)x(\d+)$/i.exec(group);
+  const size = Array.isArray(raw.size) && raw.size.length === 2 ? raw.size.map(Number) : gs ? [+gs[1], +gs[2]] : null;
+  const a = {
+    fresh: false,
+    group,
+    raw,
+    src: src || null,
+    image,
+    id: m[1],
+    ext: m[2] || '',
+    size,
+    name: String(raw.name ?? ''),
+    authors: asList(raw.authors ?? []),
+    date: String(raw.date ?? ''),
+    tags: asList(raw.tags ?? []),
+    deleted: false
+  };
+  a.orig = {name: a.name, authors: [...a.authors], date: a.date, tags: [...a.tags]};
+  return a;
+}
+
+function setData(text, from, fileName) {
+  const data = JSON.parse(text);
+  if (!data || typeof data !== 'object' || Array.isArray(data) || Object.values(data).some(v => !Array.isArray(v) || v.some(x => !x || typeof x !== 'object' || Array.isArray(x)))) {
+    throw new Error('ожидался объект, где каждая группа это список артов');
+  }
+  let layout = null;
+  try {
+    layout = scanLayout(text);
+  } catch {}
+  if (layout && (layout.groups.length !== Object.keys(data).length || layout.groups.some(g => !Array.isArray(data[g.name]) || g.elems.length !== data[g.name].length))) layout = null;
+  S.layout = layout;
+  S.groups = (layout ? layout.groups.map(g => g.name) : Object.keys(data)).map(name => ({name, sortedById: false}));
+  S.arts = S.groups.flatMap((g, gi) => data[g.name].map((raw, i) => makeArt(g.name, raw, layout && layout.groups[gi].elems[i])));
+  S.groups.forEach(g => {
+    const keys = S.arts.filter(a => a.group === g.name).map(a => idKey(a.id));
+    g.sortedById = keys.every((k, i) => i === 0 || keys[i - 1] <= k);
+  });
+  S.eol = text.includes('\r\n') ? '\r\n' : '\n';
+  S.after = layout ? layout.after : /\n$/.test(text) ? S.eol : '';
+  S.from = from;
+  S.fileName = fileName;
+  const keys = new Set(Object.keys(S.lang).filter(k => k.startsWith('tag.')).map(k => k.slice(4)));
+  S.arts.forEach(a => a.tags.forEach(t => keys.add(t)));
+  S.tagList = [...keys].sort((x, y) => (x === 'nsfw') - (y === 'nsfw') || collator.compare(tagName(x), tagName(y)));
+}
+
+const tagName = k => S.lang['tag.' + k] || k;
+
+function idKey(id) {
+  const p = parseNum(id);
+  return p ? (p.ser === 'n' ? 0 : 1e9) + p.n : Infinity;
+}
+
+async function loadSite() {
+  $('#srcErr').hidden = true;
+  try {
+    const r = await fetch('data/arts.json', {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    setData(await r.text(), 'site', '');
+  } catch (e) {
+    S.arts = [];
+    S.groups = [];
+    showSrcError('Не удалось получить data/arts.json с сайта (' + e.message + '). Откройте страницу с сайта или загрузите файл вручную.');
+  }
+  rebuild();
+}
+
+function showSrcError(text) {
+  const el = $('#srcErr');
+  el.textContent = text;
+  el.hidden = false;
+}
+
+
+function compute() {
+  const live = S.arts.filter(a => !a.deleted);
+  const res = new Map();
+  const pos = new Map();
+  const order = new Map([...S.arts.map((a, i) => [a, i]), ...S.fresh.map((a, i) => [a, 1e6 + i])]);
+  const taken = {n: new Set(), b: new Set()};
+  live.forEach(a => {
+    const p = parseNum(a.id);
+    if (p) taken[p.ser].add(p.n);
+  });
+  const mk = (a, id, why) => {
+    const image = id + (a.ext ? '.' + a.ext : '');
+    return {id, image, why, renamed: image !== (a.fresh ? a.file.name : a.image)};
+  };
+  const place = ser => {
+    const items = S.fresh.filter(a => serOf(a) === ser);
+    const wants = items.map(a => {
+      const p = parseNum(a.base);
+      return p && p.ser === ser ? p.n : null;
+    });
+    const max = Math.max(0, ...taken[ser]);
+    const slots = assignNumbers(taken[ser], wants);
+    items.forEach((a, i) => {
+      let why = '';
+      if (slots[i] !== wants[i]) {
+        const p = parseNum(a.base);
+        if (wants[i] == null) why = p ? `для размера ${a.maps[0]}×${a.maps[1]} id должен быть ${ser === 'n' ? 'числовым' : 'вида bNNN'}` : 'имя файла не похоже на id';
+        else if (taken[ser].has(wants[i])) why = `номер ${wants[i]} уже занят`;
+        else if (wants.indexOf(wants[i]) !== i) why = 'номер повторяется среди загруженных';
+        else why = slots[i] <= max ? 'заполняет дыру в нумерации' : 'нумерация должна идти без пропусков';
+      } else if (slots[i] <= max) why = 'заполняет дыру в нумерации';
+      const r = mk(a, idStr(ser, slots[i]), why);
+      if (!r.why && r.renamed) r.why = 'имя приведено к формату id';
+      res.set(a, r);
+    });
+  };
+
+  live.forEach(a => res.set(a, mk(a, a.id, '')));
+  if (S.sortAll) {
+    for (const small of [true, false]) {
+      const list = [...live, ...S.fresh].filter(a => isSmall(a) === small).sort(sortCmp(!small, order));
+      list.forEach((a, i) => {
+        pos.set(a, i);
+        if (S.renumber) res.set(a, mk(a, idStr(small ? 'n' : 'b', i + 1), 'сортировка'));
+      });
+    }
+  }
+  if (!S.sortAll || !S.renumber) {
+    place('n');
+    place('b');
+  }
+
+  const finals = new Set([...res.values()].map(r => r.image));
+  const orphans = S.arts.map(a => a.image).filter(i => i && !finals.has(i));
+  return {res, pos, order, orphans};
+}
+
+function buildOutput(plan) {
+  const groups = S.groups.map(g => ({name: g.name, items: []}));
+  const find = name => {
+    let g = groups.find(x => x.name === name);
+    if (!g) {
+      g = {name, items: []};
+      groups.push(g);
+    }
+    return g;
+  };
+  const entries = [];
+  S.arts.filter(a => !a.deleted).forEach(a => entries.push({a, g: a.group}));
+  S.fresh.forEach(a => entries.push({a, g: isSmall(a) ? '1x1' : 'other'}));
+  const keyed = new Map(S.groups.map(g => [g.name, g.sortedById]));
+  const rank = ({a, g}) => {
+    if (S.sortAll) return plan.pos.get(a);
+    if (keyed.get(g) === false) return (a.fresh ? 1e9 : 0) + plan.order.get(a);
+    return idKey(plan.res.get(a).id) * 2 + (a.fresh ? 1 : 0);
+  };
+  entries.sort((x, y) => rank(x) - rank(y));
+  entries.forEach(({a, g}) => find(g).items.push(record(a, plan.res.get(a), g)));
+  return groups;
+}
+
+const dirty = a => a.name.trim() !== a.orig.name.trim() || a.date !== a.orig.date || !sameList(a.authors, a.orig.authors) || !sameList(a.tags, a.orig.tags);
+
+function record(a, p, group) {
+  if (a.fresh) {
+    const o = {image: p.image, name: a.name.trim(), authors: [...a.authors]};
+    if (!/^\d+x\d+$/i.test(group)) o.size = [...a.maps];
+    o.date = a.date;
+    o.tags = [...a.tags];
+    return {o};
+  }
+  if (!dirty(a) && p.image === a.image) return {o: a.raw, src: a.src, same: !!a.src};
+  const o = {...a.raw};
+  o.image = p.image;
+  if (a.name.trim() !== a.orig.name.trim()) o.name = a.name.trim();
+  if (!sameList(a.authors, a.orig.authors)) o.authors = [...a.authors];
+  if (a.date !== a.orig.date) o.date = a.date;
+  if (!sameList(a.tags, a.orig.tags)) o.tags = [...a.tags];
+  return {o, src: a.src};
+}
+
+
+function authorPool() {
+  const pool = new Map();
+  [...S.arts.filter(a => !a.deleted), ...S.fresh].forEach(a => a.authors.forEach(n => {
+    const e = pool.get(lower(n)) || {counts: new Map(), n: 0};
+    e.counts.set(n, (e.counts.get(n) || 0) + 1);
+    e.n++;
+    pool.set(lower(n), e);
+  }));
+  return new Map([...pool].map(([k, e]) => [k, {name: [...e.counts].sort((x, y) => y[1] - x[1])[0][0], n: e.n}]));
+}
+
+function authorsInput(a, change) {
+  const input = h('input', {type: 'text', placeholder: 'Ник автора', autocomplete: 'off', spellcheck: 'false'});
+  const sug = h('div', {class: 'sug', hidden: true});
+  const box = h('div', {class: 'chips'}, input, sug);
+  let items = [];
+  let idx = -1;
+
+  const draw = () => {
+    box.querySelectorAll('.tag').forEach(x => x.remove());
+    a.authors.forEach(n => {
+      const remove = e => {
+        e.preventDefault();
+        a.authors = a.authors.filter(x => x !== n);
+        draw();
+        change();
+      };
+      box.insertBefore(h('span', {class: 'tag'}, n, h('button', {type: 'button', title: 'Убрать', text: '×', onmousedown: remove, onclick: remove})), input);
+    });
+  };
+  const close = () => {
+    sug.hidden = true;
+    items = [];
+    idx = -1;
+  };
+  const add = text => {
+    const pool = authorPool();
+    let added = false;
+    text.split(',').map(x => x.trim()).filter(Boolean).forEach(t => {
+      const name = pool.get(lower(t))?.name || t;
+      if (!a.authors.some(x => lower(x) === lower(name))) {
+        a.authors.push(name);
+        added = true;
+      }
+    });
+    input.value = '';
+    close();
+    draw();
+    if (added) change();
+  };
+  const show = () => {
+    const q = lower(input.value.trim());
+    if (!q) return close();
+    const have = new Set(a.authors.map(lower));
+    const all = [...authorPool()].filter(([k]) => !have.has(k) && k.includes(q))
+      .sort(([k1, v1], [k2, v2]) => k2.startsWith(q) - k1.startsWith(q) || v2.n - v1.n || collator.compare(k1, k2));
+    items = all.slice(0, 8).map(([, v]) => v);
+    idx = -1;
+    paint();
+  };
+  const paint = () => {
+    sug.replaceChildren(...items.map((v, i) => h('div', {class: i === idx ? 'on' : '', onclick: () => add(v.name)}, h('span', {text: v.name}), h('span', {class: 'mu', text: v.n}))));
+    sug.hidden = !items.length;
+  };
+  sug.addEventListener('mousedown', e => e.preventDefault());
+  input.addEventListener('input', () => {
+    if (input.value.includes(',')) add(input.value);
+    else show();
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!items.length) return;
+      e.preventDefault();
+      idx = e.key === 'ArrowDown' ? (idx + 1) % items.length : idx <= 0 ? items.length - 1 : idx - 1;
+      paint();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (idx >= 0 && items[idx]) add(items[idx].name);
+      else if (input.value.trim()) add(input.value);
+    } else if (e.key === 'Escape') {
+      input.value = '';
+      close();
+    } else if (e.key === 'Backspace' && !input.value && a.authors.length) {
+      a.authors.pop();
+      draw();
+      change();
+    }
+  });
+  input.addEventListener('blur', () => {
+    if (input.value.trim()) add(input.value);
+    close();
+  });
+  box.addEventListener('mousedown', e => {
+    if (e.target === box) {
+      e.preventDefault();
+      input.focus();
+    }
+  });
+  draw();
+  return box;
+}
+
+function closePops(except) {
+  document.querySelectorAll('.pop:not([hidden])').forEach(p => { if (p !== except) p.hidden = true; });
+}
+
+function tagPicker(a, change) {
+  const btn = h('button', {type: 'button'});
+  const label = () => { btn.textContent = a.tags.length ? a.tags.map(tagName).join(', ') : 'Без тегов'; };
+  const pop = h('div', {class: 'pop', hidden: true}, S.tagList.map(k => {
+    const cb = h('input', {type: 'checkbox', checked: a.tags.includes(k)});
+    cb.addEventListener('change', () => {
+      a.tags = cb.checked ? [...a.tags, k] : a.tags.filter(x => x !== k);
+      label();
+      change();
+    });
+    return h('label', {}, cb, tagName(k));
+  }));
+  btn.addEventListener('click', () => {
+    closePops(pop);
+    pop.hidden = !pop.hidden;
+  });
+  label();
+  return h('div', {class: 'dd'}, btn, pop);
+}
+
+function fields(a, change) {
+  const name = h('input', {type: 'text', placeholder: 'Название', value: a.name});
+  name.addEventListener('input', () => {
+    a.name = name.value;
+    change();
+  });
+  const date = h('input', {type: 'text', placeholder: 'дд.мм.гггг или мм.гггг', inputmode: 'numeric', value: a.dateIn ?? a.date});
+  const hint = h('span', {class: 'hint'});
+  const apply = commit => {
+    const r = parseDate(date.value);
+    a.dateIn = date.value;
+    a.dateErr = r.error || null;
+    if (r.error) {
+      a.date = '';
+      hint.textContent = r.error;
+    } else {
+      a.date = r.value;
+      hint.textContent = r.value && r.value !== date.value.trim() ? '→ ' + r.value : '';
+      if (commit && r.value) {
+        date.value = r.value;
+        a.dateIn = r.value;
+        hint.textContent = '';
+      }
+    }
+    hint.className = 'hint' + (r.error ? ' err' : '');
+    change();
+  };
+  date.addEventListener('input', () => apply(false));
+  date.addEventListener('blur', () => apply(true));
+  date.addEventListener('keydown', e => { if (e.key === 'Enter') apply(true); });
+  return h('div', {class: 'fields'},
+    h('div', {class: 'lbl', text: 'Название'}), name,
+    h('div', {class: 'lbl', text: 'Авторы'}), authorsInput(a, change),
+    h('div', {class: 'lbl', text: 'Дата'}), h('div', {}, date, hint),
+    h('div', {class: 'lbl', text: 'Теги'}), tagPicker(a, change));
+}
+
+
+const measure = url => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => resolve([img.naturalWidth, img.naturalHeight]);
+  img.onerror = () => reject(new Error('не изображение'));
+  img.src = url;
+});
+
+async function addFiles(files) {
+  const list = [...files].filter(f => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name));
+  const msg = [];
+  const skipped = files.length - list.length;
+  if (skipped) msg.push(`Пропущено не изображений: ${skipped}`);
+  let dup = 0;
+  const bad = [];
+  for (const file of list) {
+    if (S.fresh.some(a => a.file.name === file.name && a.file.size === file.size && a.file.lastModified === file.lastModified)) {
+      dup++;
+      continue;
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const [w, hh] = await measure(url);
+      const m = /^(.*?)(?:\.([^.]*))?$/.exec(file.name);
+      S.fresh.push({
+        fresh: true, file, url, base: m[1], ext: lower(m[2] || file.type.split('/')[1] || 'png').replace('jpeg', 'jpg'),
+        px: [w, hh], maps: [Math.max(1, Math.round(w / MAP)), Math.max(1, Math.round(hh / MAP))],
+        name: '', authors: [], date: '', tags: []
+      });
+    } catch {
+      bad.push(file.name);
+      URL.revokeObjectURL(url);
+    }
+  }
+  if (dup) msg.push(`Уже добавлено: ${dup}`);
+  if (bad.length) msg.push(`Не удалось прочитать: ${bad.join(', ')}`);
+  $('#addMsg').replaceChildren(...msg.map(t => h('div', {class: 'note info', text: t})));
+  S.fresh.sort((x, y) => collator.compare(x.file.name, y.file.name));
+  renderFresh();
+  refresh();
+}
+
+function renderFresh() {
+  $('#fresh').replaceChildren(...S.fresh.map(cardOf));
+}
+
+function cardOf(a) {
+  const u = a.ui = {
+    old: h('span', {class: 'old'}),
+    name: h('span', {class: 'fname'}),
+    badge: h('span', {class: 'badge', text: 'переименован'}),
+    why: h('span', {class: 'mu'}),
+    notes: h('div', {}),
+    px: h('span', {class: 'mu'})
+  };
+  const dim = i => {
+    const inp = h('input', {type: 'number', min: 1, step: 1, value: a.maps[i]});
+    inp.addEventListener('change', () => {
+      a.maps[i] = Math.max(1, Math.round(+inp.value) || 1);
+      inp.value = a.maps[i];
+      refresh();
+    });
+    return inp;
+  };
+  return h('section', {class: 'card'},
+    h('div', {class: 'art'},
+      h('div', {class: 'thumb'}, h('img', {src: a.url, alt: ''})),
+      h('div', {},
+        h('div', {class: 'titleline'}, u.old, u.name, u.badge, u.why, h('span', {class: 'grow'}),
+          h('button', {type: 'button', title: 'Убрать из списка', text: '✕', onclick: () => {
+            URL.revokeObjectURL(a.url);
+            S.fresh = S.fresh.filter(x => x !== a);
+            renderFresh();
+            refresh();
+          }})),
+        h('div', {class: 'size'}, 'Размер, карт:', dim(0), '×', dim(1), u.px),
+        fields(a, schedule),
+        u.notes)));
+}
+
+function signature(a) {
+  const s = sizeOf(a);
+  return JSON.stringify([s, lower(a.name.trim()), a.authors.map(lower).sort(), a.date, [...a.tags].sort()]);
+}
+
+const isEmpty = a => !a.name.trim() && !a.authors.length && !a.date && !a.tags.length;
+
+function notesFor(a, known) {
+  const out = [];
+  const [w, hh] = a.px;
+  const bits = [];
+  if (w % MAP) bits.push(`ширина ${w} px не кратна ${MAP}`);
+  if (hh % MAP) bits.push(`высота ${hh} px не кратна ${MAP}`);
+  if (bits.length) out.push({cls: '', text: `Размер изображения ${w}×${hh} px: ${bits.join(', ')}. Проверьте размер в картах.`});
+  if (a.dateErr) out.push({cls: 'err', text: 'Дата не распознана, пока она не исправлена, скачивание отключено.'});
+  if (!isEmpty(a)) {
+    const same = known.get(a.sig);
+    if (same) out.push({cls: '', text: `Все данные совпадают с артом ${same.id}, который уже есть на сайте.`});
+    const other = S.fresh.find(x => x !== a && x.sig === a.sig);
+    if (other) out.push({cls: '', text: `Все данные совпадают с другим новым артом (${other.file.name}).`});
+  }
+  return out;
+}
+
+
+function normQuery(q) {
+  return lower(q).replace(/(\d+)\s*[x×х*]\s*(\d+)/g, '$1x$2').split(/\s+/).filter(Boolean);
+}
+
+function matches(a, tokens) {
+  const s = a.size ? `${a.size[0]}x${a.size[1]}` : '';
+  const hay = [lower(a.id), lower(a.name), ...a.authors.map(lower), ...a.tags.flatMap(t => [lower(t), lower(tagName(t))]), a.date];
+  const num = parseNum(a.id);
+  return tokens.every(t => {
+    if (/^\d+x\d+$/.test(t)) return s === t;
+    const q = /^(b?)(\d+)$/.exec(t);
+    if (q && num && num.ser === (q[1] ? 'b' : 'n') && num.n === +q[2]) return true;
+    return hay.some(x => x.includes(t));
+  });
+}
+
+function renderFound() {
+  const tokens = normQuery($('#find').value);
+  const hits = tokens.length ? S.arts.filter(a => matches(a, tokens)) : S.arts;
+  $('#findInfo').textContent = `Найдено: ${hits.length} из ${S.arts.length}`;
+  $('#found').replaceChildren(...hits.slice(0, S.shown).map(rowOf));
+  $('#more').hidden = hits.length <= S.shown;
+  refresh();
+}
+
+function rowOf(a) {
+  const u = a.rowUi = {
+    root: null,
+    id: h('b', {}),
+    to: h('span', {class: 'mu'}),
+    del: h('button', {type: 'button'}),
+    notes: h('div', {})
+  };
+  u.del.addEventListener('click', () => {
+    a.deleted = !a.deleted;
+    refresh();
+  });
+  const size = a.size ? `${a.size[0]}×${a.size[1]}` : 'размер неизвестен';
+  u.root = h('div', {class: 'ex'},
+    h('div', {class: 'thumb'}, h('img', {src: 'data/arts/' + encodeURIComponent(a.image), alt: '', loading: 'lazy'})),
+    h('div', {},
+      h('div', {class: 'exhead'}, u.id, h('span', {class: 'mu', text: size}), u.to, h('span', {class: 'grow'}), u.del),
+      fields(a, schedule),
+      u.notes));
+  return u.root;
+}
+
+
+let pending = 0;
+function schedule() {
+  if (!pending) pending = requestAnimationFrame(refresh);
+}
+
+const infoLabel = a => {
+  const key = (a.authors.length ? 'автор ' : '') + (a.name.trim() ? 'название ' : '') + (a.tags.length ? 'теги' : '');
+  return key.trim() || 'нет данных';
+};
+
+function refresh() {
+  pending = 0;
+  const plan = S.plan = compute();
+  const setNotes = (el, list) => el.replaceChildren(...list.map(n => h('div', {class: 'note ' + n.cls, text: n.text})));
+  let problems = 0;
+  const known = new Map();
+  S.arts.forEach(a => {
+    if (!a.deleted && !isEmpty(a) && !known.has(signature(a))) known.set(signature(a), a);
+  });
+  S.fresh.forEach(a => { a.sig = signature(a); });
+
+  for (const a of S.fresh) {
+    const p = plan.res.get(a);
+    a.ui.name.textContent = p.image;
+    a.ui.old.textContent = p.renamed ? a.file.name : '';
+    a.ui.old.hidden = !p.renamed;
+    a.ui.badge.hidden = !p.renamed;
+    a.ui.why.textContent = p.why;
+    a.ui.px.textContent = `(${a.px[0]}×${a.px[1]} px)`;
+    if (a.dateErr) problems++;
+    setNotes(a.ui.notes, notesFor(a, known));
+  }
+
+  for (const a of S.arts) {
+    if (a.dateErr && !a.deleted) problems++;
+    const u = a.rowUi;
+    if (!u || !u.root.isConnected) continue;
+    const p = plan.res.get(a);
+    u.id.textContent = a.id;
+    u.to.textContent = p && p.image !== a.image && !a.deleted ? `→ ${p.image} (${p.why})` : '';
+    u.del.textContent = a.deleted ? 'Вернуть' : 'Удалить';
+    u.del.className = a.deleted ? '' : 'danger';
+    u.root.classList.toggle('gone', a.deleted);
+    u.root.classList.toggle('chg', !a.deleted && dirty(a));
+    setNotes(u.notes, a.dateErr ? [{cls: 'err', text: 'Дата не распознана, пока она не исправлена, скачивание отключено.'}] : []);
+  }
+
+  const renamedFresh = S.fresh.filter(a => plan.res.get(a).renamed).length;
+  const renamedOld = S.arts.filter(a => !a.deleted && plan.res.get(a).renamed).length;
+  const edited = S.arts.filter(a => !a.deleted && dirty(a)).length;
+  const deleted = S.arts.filter(a => a.deleted).length;
+  const changes = S.fresh.length + edited + deleted + renamedOld + (S.sortAll ? 1 : 0);
+  S.stats = {renamedFresh, renamedOld, edited, deleted, changes, problems};
+
+  $('#srcInfo').textContent = S.arts.length
+    ? `${S.from === 'site' ? 'с сайта (data/arts.json)' : 'свой файл ' + S.fileName}, артов: ${S.arts.length}`
+    : (S.from === 'site' ? 'не загружен' : 'пусто');
+  $('#srcSite').hidden = S.from === 'site';
+
+  const parts = [`Новых: ${S.fresh.length}`];
+  if (renamedFresh) parts.push(`переименовано: ${renamedFresh}`);
+  if (edited) parts.push(`изменено: ${edited}`);
+  if (deleted) parts.push(`удалено: ${deleted}`);
+  if (renamedOld) parts.push(`переименовано существующих: ${renamedOld}`);
+  $('#barInfo').textContent = parts.join(' · ');
+  $('#dlJson').disabled = !changes || problems > 0;
+  $('#dlAll').disabled = !(S.fresh.length || renamedOld) || problems > 0;
+  $('#dlRen').disabled = !(renamedFresh || renamedOld) || problems > 0;
+
+  const sum = [];
+  if (problems) sum.push(h('div', {class: 'note err', text: `Скачивание отключено: исправьте даты (${problems}).`}));
+  if (plan.orphans.length) {
+    sum.push(h('div', {class: 'note', text: `Эти файлы больше не нужны, удалите их вручную из data/arts: ${plan.orphans.join(', ')}`}));
+  }
+  if (!sum.length) sum.push(h('div', {class: 'mu', text: 'Предупреждений нет.'}));
+  $('#sum').replaceChildren(...sum, h('div', {id: 'status', class: 'mu', style: 'margin-top:8px'}));
+
+  if ($('#sortBox').open || S.sortAll) renderSort(plan);
+}
+
+function renderSort(plan) {
+  const wrap = $('#sortWrap');
+  wrap.hidden = !S.sortAll;
+  $('#sortInfo').textContent = S.sortAll
+    ? `Изменится id у существующих артов: ${S.stats.renamedOld}, новых артов в сортировке: ${S.fresh.length}`
+    : '';
+  if (!S.sortAll) return;
+  const rows = [];
+  for (const small of [true, false]) {
+    [...plan.pos].map(([a, i]) => [a, i]).filter(([a]) => isSmall(a) === small).sort((x, y) => x[1] - y[1]).forEach(([a]) => rows.push(a));
+  }
+  const th = t => h('th', {text: t});
+  $('#sortTable').replaceChildren(
+    h('tr', {}, th('Новый id'), th('Был'), th('Размер'), th('Дата'), th('Данные'), th('Название')),
+    ...rows.slice(0, 1000).map(a => {
+      const p = plan.res.get(a);
+      const s = sizeOf(a);
+      return h('tr', {},
+        h('td', {text: S.renumber ? p.id : '·'}), h('td', {text: a.fresh ? 'новый (' + a.file.name + ')' : a.id}),
+        h('td', {text: s ? `${s[0]}×${s[1]}` : '?'}), h('td', {text: a.date || '—'}),
+        h('td', {text: infoLabel(a)}), h('td', {class: 'cut', text: a.name || ''}));
+    }));
+}
+
+function rebuild() {
+  S.shown = PAGE;
+  renderFresh();
+  renderFound();
+}
+
+
+async function downloadZip(onlyRenamed) {
+  const plan = S.plan;
+  const items = [];
+  S.fresh.forEach(a => {
+    const p = plan.res.get(a);
+    if (!onlyRenamed || p.renamed) items.push({name: p.image, get: () => a.file.arrayBuffer()});
+  });
+  S.arts.filter(a => !a.deleted && plan.res.get(a).renamed).forEach(a => {
+    items.push({name: plan.res.get(a).image, get: async () => {
+      const r = await fetch('data/arts/' + encodeURIComponent(a.image), {cache: 'no-store'});
+      if (!r.ok) throw new Error(`${a.image}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    }});
+  });
+  const status = $('#status');
+  const files = [];
+  const errors = [];
+  for (const [i, it] of items.entries()) {
+    status.textContent = `Подготовка архива: ${i + 1} из ${items.length}`;
+    try {
+      files.push({name: it.name, data: new Uint8Array(await it.get())});
+    } catch (e) {
+      errors.push(e.message);
+    }
+  }
+  if (errors.length) {
+    status.replaceChildren(h('div', {class: 'note err', text: 'Архив не создан, не удалось получить файлы: ' + errors.join('; ')}));
+    return;
+  }
+  save(makeZip(files), onlyRenamed ? 'renders-renamed.zip' : 'renders.zip');
+  status.textContent = `Готово: файлов в архиве ${files.length}`;
+}
+
+
+$('#dlJson').addEventListener('click', () => {
+  const text = serialize(buildOutput(S.plan));
+  save(new Blob([text], {type: 'application/json'}), 'arts.json');
+});
+$('#dlAll').addEventListener('click', () => downloadZip(false));
+$('#dlRen').addEventListener('click', () => downloadZip(true));
+
+$('#pick').addEventListener('click', () => $('#pickInput').click());
+$('#pickInput').addEventListener('change', e => {
+  addFiles(e.target.files);
+  e.target.value = '';
+});
+
+$('#srcPick').addEventListener('click', () => $('#srcInput').click());
+$('#srcSite').addEventListener('click', () => {
+  if (S.stats.edited + S.stats.deleted && !confirm('Изменения и удаления существующих артов будут сброшены. Продолжить?')) return;
+  loadSite();
+});
+$('#srcInput').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (S.stats && S.stats.edited + S.stats.deleted && !confirm('Изменения и удаления существующих артов будут сброшены. Продолжить?')) return;
+  try {
+    setData(await f.text(), 'file', f.name);
+    $('#srcErr').hidden = true;
+    rebuild();
+  } catch (err) {
+    showSrcError('Не удалось прочитать файл: ' + err.message);
+  }
+});
+
+let findTimer;
+$('#find').addEventListener('input', () => {
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => {
+    S.shown = PAGE;
+    renderFound();
+  }, 120);
+});
+$('#more').addEventListener('click', () => {
+  S.shown += PAGE;
+  renderFound();
+});
+$('#editBox').addEventListener('toggle', refresh);
+$('#sortBox').addEventListener('toggle', refresh);
+$('#sortOn').addEventListener('change', e => {
+  S.sortAll = e.target.checked;
+  refresh();
+});
+$('#sortRen').addEventListener('change', e => {
+  S.renumber = e.target.checked;
+  refresh();
+});
+
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+let dragDepth = 0;
+addEventListener('dragenter', e => {
+  if (!hasFiles(e)) return;
+  dragDepth++;
+  $('#drop').classList.add('on');
+});
+addEventListener('dragleave', e => {
+  if (hasFiles(e) && --dragDepth <= 0) {
+    dragDepth = 0;
+    $('#drop').classList.remove('on');
+  }
+});
+addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+addEventListener('drop', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  $('#drop').classList.remove('on');
+  addFiles(e.dataTransfer.files);
+});
+addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (!files.length) return;
+  e.preventDefault();
+  addFiles(files);
+});
+
+document.addEventListener('mousedown', e => {
+  document.querySelectorAll('.pop:not([hidden])').forEach(p => { if (!p.parentElement.contains(e.target)) p.hidden = true; });
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
+addEventListener('beforeunload', e => {
+  if (S.stats && S.stats.changes) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+(async () => {
+  try {
+    S.lang = await (await fetch('lang/ru.json')).json();
+  } catch {}
+  await loadSite();
+})();
+</script>
+</body>
+</html>
