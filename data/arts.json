@@ -1791,6 +1791,61 @@
       "authors": ["_n0nam3_"],
       "date": "31.10.26",
       "tags": ["color"]
+    },
+    {
+      "image": "0257.png",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0258.png",
+      "name": "Ezalor",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0259.png",
+      "name": "Lina",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0260.png",
+      "name": "Zeus",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0261.png",
+      "name": "Happy Birthday Vladvortex",
+      "authors": ["gazon", "TheFullZooMi", "2b2tps"],
+      "date": "13.11.26",
+      "tags": []
+    },
+    {
+      "image": "0262.png",
+      "name": "Crystal Maiden",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0263.png",
+      "name": "Enchantress",
+      "authors": ["gazon"],
+      "date": "11.26",
+      "tags": []
+    },
+    {
+      "image": "0264.png",
+      "name": "Puck",
+      "authors": ["gzon"],
+      "date": "11.26",
+      "tags": []
     }
   ],
 
@@ -2322,6 +2377,22 @@
       "size": [5, 6],
       "date": "01.11.26",
       "tags": []
+    },
+    {
+      "image": "b067.png",
+      "name": "Ringo-chan",
+      "authors": ["DOTOR_FORCSCORP", "patriarhat"],
+      "size": [1, 2],
+      "date": "12.11.26",
+      "tags": ["anime"]
+    },
+    {
+      "image": "b068.png",
+      "name": "Ayanami Rei",
+      "authors": ["dert32"],
+      "size": [3, 5],
+      "date": "14.11.26",
+      "tags": ["anime"]
     }
   ]
 }
